@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% set active = "home" %}
+{% block title %}RV Predictor — Home{% endblock %}
+{% block xs %}
+<style>
+.kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.kb{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:14px 10px;text-align:center}
+.kl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+.kv{font-family:var(--fm);font-size:26px;font-weight:700;line-height:1}
+.ks{font-size:10px;color:var(--t2);margin-top:3px}
+.mc{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:border-color 0.2s}
+.mc.on{border-color:var(--amber)}
+.mt{display:flex;align-items:center;gap:11px;padding:14px 16px}
+.mrk{width:28px;height:28px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-family:var(--fm);font-size:12px;font-weight:700;flex-shrink:0}
+.r1{background:linear-gradient(135deg,var(--amber),#f97316);color:#000}
+.r2{background:rgba(220,220,220,0.1);color:#999}
+.r3{background:rgba(180,100,30,0.15);color:#cd7f32}
+.r0{background:var(--c3);color:var(--t2)}
+.mi{flex:1;min-width:0}
+.mn{font-size:15px;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mm{font-size:11px;color:var(--t2);margin-top:2px}
+.mr2{display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+.sb{display:flex;align-items:center;gap:8px;padding:0 16px 12px}
+.st{flex:1;height:3px;background:var(--br);border-radius:2px;overflow:hidden}
+.sf{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--green),var(--amber));transition:width 0.8s ease}
+.sn{font-family:var(--fm);font-size:11px;font-weight:700;color:var(--amber);min-width:24px;text-align:right}
+.det{display:none;border-top:1px solid var(--br);padding:14px 16px}
+.det.open{display:block;animation:up 0.22s ease}
+.h4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+.hb{background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);padding:10px 6px;text-align:center}
+.hb.hi{border-color:var(--amber);background:rgba(245,158,11,0.06)}
+.ht{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:4px}
+.hp{font-family:var(--fm);font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.1}
+.hr{font-size:11px;font-weight:700;margin-bottom:4px}
+.hcb{height:2px;background:var(--br);border-radius:1px;overflow:hidden;margin-bottom:2px}
+.hcf{height:100%;background:var(--blue);border-radius:1px}
+.hct{font-size:8px;color:var(--t3)}
+.sg2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sg{border-radius:var(--rs);padding:11px 12px;border:1px solid}
+.sl{font-size:8px;letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;opacity:0.65}
+.sv{font-size:11px;font-weight:700;line-height:1.3}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
+.gb{background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);padding:10px 6px;text-align:center}
+.gtl{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+.gw{position:relative;width:56px;height:56px;margin:0 auto 5px}
+.gw svg{position:absolute;inset:0;transform:rotate(-90deg)}
+.gc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.gn{font-family:var(--fm);font-size:12px;font-weight:700}
+.gd{font-size:9px;color:var(--t2)}
+/* SPREAD — fixed, no rotation */
+.sp-wrap{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.sp-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 12px;border-bottom:1px solid var(--br)}
+.sp-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--br)}
+.sp-item:last-child{border-bottom:none}
+.sp-name{font-size:12px;font-weight:700;width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+.sp-track{flex:1;height:6px;background:var(--br);border-radius:3px;overflow:hidden}
+.sp-fill{height:100%;border-radius:3px}
+.sp-price{font-family:var(--fm);font-size:12px;font-weight:700;min-width:62px;text-align:right;flex-shrink:0}
+.best-tag{display:inline-block;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:1px 7px;font-size:9px;font-weight:700;color:var(--green);font-family:var(--fm);margin-left:4px;vertical-align:middle}
+/* HEATMAP only >50 */
+.hm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.hmc{border-radius:var(--rs);padding:14px;border:1px solid}
+.hmn{font-size:13px;font-weight:800;margin-bottom:4px}
+.hmp{font-family:var(--fm);font-size:26px;font-weight:700;line-height:1;margin-bottom:4px}
+.hmb{height:4px;border-radius:2px;margin-bottom:6px}
+.hmw{font-size:11px;font-weight:700}
+.hmpr{font-size:11px;color:rgba(255,255,255,0.45);margin-top:3px}
+.no-crash{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--r);padding:22px;text-align:center}
+</style>
+{% endblock %}
+{% block content %}
+<div id="root"><div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading...</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let SIG=[];let OC=null;let CH={};
+
+async function init(){
+  try{
+    const[sr,spr,hmr]=await Promise.all([
+      fetch('/api/signals').then(r=>r.json()),
+      fetch('/api/spread').then(r=>r.json()),
+      fetch('/api/heatmap').then(r=>r.json()),
+    ]);
+    SIG=sr.data||[];
+    render(SIG,spr,hmr);
+  }catch(e){
+    document.getElementById('root').innerHTML='<div class="er">Could not load data. Is Flask running?</div>';
+  }
+}
+
+function render(sigs,spread,hm){
+  const buy=sigs.filter(r=>r.entry&&r.entry.includes('BUY TODAY')).length;
+  const wait=sigs.filter(r=>r.entry&&r.entry.includes('WAIT')).length;
+  const avoid=sigs.filter(r=>r.plan&&r.plan.includes('AVOID')).length;
+  document.getElementById('root').innerHTML=`
+    <div class="kpi an">
+      <div class="kb"><div class="kl">Buy Today</div><div class="kv pos">${buy}</div><div class="ks">mandis</div></div>
+      <div class="kb"><div class="kl">Wait</div><div class="kv neu">${wait}</div><div class="ks">mandis</div></div>
+      <div class="kb"><div class="kl">Avoid</div><div class="kv neg">${avoid}</div><div class="ks">mandis</div></div>
+    </div>
+    <div class="sec">Top 5 — Best to Buy Today</div>
+    ${sigs.slice(0,5).map((r,i)=>mcard(r,i)).join('')}
+    <div class="sec">Price Spread — Cheapest to Costliest</div>
+    ${rspread(spread)}
+    <div class="sec">⚠️ Crash Risk Alert — Danger Mandis Only</div>
+    ${rheatmap(hm)}`;
+}
+
+function mcard(r,i){
+  const rc=['r1','r2','r3','r0'][Math.min(i,3)];
+  const cl=pc(r.entry);const si=ss(r.entry);
+  const sw=Math.round(r.score/10*100);const id='m'+i;
+  return`<div class="mc an" id="${id}" style="animation-delay:${i*0.06}s" onclick="tog('${id}','${encodeURIComponent(r.mandi)}',${i})">
+    <div class="mt">
+      <div class="mrk ${rc}">${i+1}</div>
+      <div class="mi"><div class="mn">${r.mandi}</div><div class="mm">${fp(r.price)} &nbsp;·&nbsp; ${r.regime||''}</div></div>
+      <div class="mr2"><span class="pill ${cl}">${si}</span><span style="font-family:var(--fm);font-size:11px;color:var(--amber)">${r.score}/10</span></div>
+    </div>
+    <div class="sb"><div class="st"><div class="sf" style="width:${sw}%"></div></div><div class="sn">${r.score}</div></div>
+    <div class="det" id="d${id}"></div>
+  </div>`;
+}
+
+async function tog(id,em,idx){
+  const card=document.getElementById(id);const det=document.getElementById('d'+id);
+  if(card.classList.contains('on')){
+    card.classList.remove('on');det.classList.remove('open');
+    if(CH[id]){CH[id].destroy();delete CH[id];}OC=null;return;
+  }
+  if(OC){document.getElementById(OC)?.classList.remove('on');document.getElementById('d'+OC)?.classList.remove('open');if(CH[OC]){CH[OC].destroy();delete CH[OC];}}
+  OC=id;card.classList.add('on');
+  det.innerHTML='<div style="text-align:center;color:var(--t2);padding:12px;font-size:12px">Loading chart...</div>';
+  det.classList.add('open');
+  const mandi=decodeURIComponent(em);
+  const r=SIG.find(x=>x.mandi===mandi)||SIG[idx];
+  const hist=await fetch('/api/history/'+encodeURIComponent(mandi)+'?days=90').then(x=>x.json()).catch(()=>({dates:[],prices:[],arrivals:[]}));
+  det.innerHTML=bdet(r,hist,id);
+  setTimeout(()=>mchart(hist,r,'ch'+id,id),60);
+  setTimeout(()=>card.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+}
+
+function bdet(r,h,id){
+  const hh=[
+    {t:'1d',p:r.pred1,rt:r.ret1,c:r.conf1,pr:false},
+    {t:'3d',p:r.pred3,rt:r.ret3,c:r.conf3,pr:false},
+    {t:'7d',p:r.pred7,rt:r.ret7,c:r.conf7,pr:false},
+    {t:'14d',p:r.pred14,rt:r.ret14,c:r.conf14,pr:true},
+  ].map(h=>`<div class="hb${h.pr?' hi':''}"><div class="ht">${h.t}${h.pr?' ✅':''}</div><div class="hp">${fp(h.p)}</div><div class="hr ${rc(h.rt)}">${fr(h.rt)}</div><div class="hcb"><div class="hcf" style="width:${h.c||0}%"></div></div><div class="hct">${h.c||0}%</div></div>`).join('');
+  const ec=r.entry?.includes('BUY TODAY')?'var(--green)':r.entry?.includes('WAIT')?'var(--t2)':'var(--red)';
+  const pc2=r.plan?.includes('STRONG BUY')?'var(--amber)':r.plan?.includes('BUY')?'var(--green)':r.plan?.includes('AVOID')?'var(--red)':'var(--t2)';
+  const crash=Number(r.crash)||0;const arr=Number(r.arrival)||1;const score=Number(r.score)||0;
+  const cc=crash>50?'var(--red)':crash>30?'#f97316':'var(--green)';
+  const ac=arr>1.5?'var(--red)':arr<0.6?'var(--cyan)':'var(--green)';
+  return`<div class="h4">${hh}</div>
+    <div class="sg2">
+      <div class="sg" style="background:${ec}18;border-color:${ec}44;color:${ec}"><div class="sl">Entry (1d)</div><div class="sv">${r.entry||'—'}</div></div>
+      <div class="sg" style="background:${pc2}18;border-color:${pc2}44;color:${pc2}"><div class="sl">Planning (14d)</div><div class="sv">${r.plan||'—'}</div></div>
+    </div>
+    <div class="g3">${gauge('Crash',crash+'%',cc,crash)}${gauge('Arrival',arr.toFixed(1)+'x',ac,Math.min(arr/2.5*100,100))}${gauge('Score',score+'/10','var(--amber)',score*10)}</div>
+    <div class="cw"><div class="cl">90-Day Price + Arrivals + AI Forecast</div><canvas id="ch${id}" height="120"></canvas></div>`;
+}
+
+function gauge(title,val,color,pct){
+  const R=20,C=2*Math.PI*R,off=C-(Math.min(pct,100)/100)*C;
+  const desc=title==='Crash'?(pct>50?'High risk':pct>30?'Moderate':'Low'):title==='Arrival'?(Number(val)>1.5?'Heavy supply':Number(val)<0.6?'Thin supply':'Normal'):(pct/10>=7?'Strong buy':pct/10>=5?'Neutral':'Avoid');
+  return`<div class="gb"><div class="gtl">${title}</div><div class="gw"><svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="${R}" fill="none" stroke="var(--br)" stroke-width="5"/><circle cx="28" cy="28" r="${R}" fill="none" stroke="${color}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}" style="transition:stroke-dashoffset 0.8s ease"/></svg><div class="gc"><div class="gn" style="color:${color};font-size:11px">${val}</div></div></div><div class="gd">${desc}</div></div>`;
+}
+
+function mchart(hist,r,cid,cardId){
+  const canvas=document.getElementById(cid);if(!canvas)return;
+  const hp=hist.prices||[];
+  const fd=[...new Array(Math.max(hp.length-1,0)).fill(null),hp[hp.length-1]||null,r.pred1,r.pred3,r.pred7,r.pred14];
+  const labels=[...(hist.dates||[]).map(d=>d.slice(5)),'+1d','+3d','+7d','+14d'];
+  const arrd=[...(hist.arrivals||[]),null,null,null,null];
+  CH[cardId]=new Chart(canvas.getContext('2d'),{
+    data:{labels,datasets:[
+      {type:'line',label:'Price',data:[...hp,null,null,null,null],borderColor:'#3b82f6',borderWidth:2,pointRadius:0,tension:0.35,fill:false,yAxisID:'y'},
+      {type:'line',label:'Forecast',data:fd,borderColor:'#f59e0b',borderWidth:2.5,borderDash:[6,4],pointRadius:(c)=>c.dataIndex>=hp.length?5:0,pointBackgroundColor:'#f59e0b',tension:0.3,fill:false,yAxisID:'y'},
+      {type:'bar',label:'Arrival',data:arrd,backgroundColor:'rgba(34,211,238,0.18)',borderRadius:2,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+        callbacks:{label:c=>c.dataset.label==='Arrival'?` Arr:${c.raw??'—'}q`:` ₹${c.raw!=null?Number(c.raw).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}`}}},
+      scales:{
+        x:{grid:{color:'#1c2b40'},ticks:{maxTicksLimit:7,maxRotation:0}},
+        y:{position:'left',grid:{color:'#1c2b40'},ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}},
+        y2:{position:'right',grid:{display:false},ticks:{callback:v=>v+'q'}}
+      }}
+  });
+}
+
+/* ── SPREAD: fixed horizontal bars, sorted cheapest→costliest ── */
+function rspread(s){
+  if(!s||s.error)return`<div class="er">${s?.error||'No data'}</div>`;
+  const ms=s.mandis||[];
+  if(!ms.length)return'<div class="er">No spread data available</div>';
+  // ms is already sorted cheapest first from API
+  const minP=ms[0].price;
+  const maxP=ms[ms.length-1].price;
+  const range=maxP-minP||1;
+
+  const rows=ms.map((r,i)=>{
+    const pct=Math.max(Math.round((r.price-minP)/range*100),1);
+    const isMin=i===0;
+    const isMax=i===ms.length-1;
+    const col=isMin?'var(--green)':isMax?'var(--red)':pct>70?'#f97316':'var(--amber)';
+    return`<div class="sp-item">
+      <div class="sp-name">${r.mandi}${isMin?'<span class="best-tag">BEST</span>':''}</div>
+      <div class="sp-track"><div class="sp-fill" style="width:${pct}%;background:${col}"></div></div>
+      <div class="sp-price ${isMin?'pos':isMax?'neg':'acc'}">${fp(r.price)}</div>
+    </div>`;
+  }).join('');
+
+  return`<div class="sp-wrap">
+    <div class="sp-hdr">
+      <div>
+        <div style="font-size:10px;color:var(--t2);margin-bottom:3px">Cheapest today — Buy here</div>
+        <div style="font-size:17px;font-weight:800;color:var(--green)">${s.cheapest?.mandi||ms[0]?.mandi||'—'}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:10px;color:var(--t2);margin-bottom:3px">Total price gap</div>
+        <div style="font-family:var(--fm);font-size:22px;font-weight:700;color:var(--red)">₹${s.spread||0}</div>
+      </div>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+/* ── HEATMAP: ONLY show mandis with crash > 50% ── */
+function rheatmap(hm){
+  const danger=(hm||[]).filter(r=>Number(r.crash)>50).sort((a,b)=>b.crash-a.crash);
+  if(!danger.length){
+    return`<div class="no-crash">
+      <div style="font-size:28px;margin-bottom:8px">✅</div>
+      <div style="font-size:15px;font-weight:800;color:var(--green)">All Clear — No Danger Mandis</div>
+      <div style="font-size:12px;color:var(--t2);margin-top:5px">No mandi has crash risk above 50% today</div>
+    </div>`;
+  }
+  return`<div class="hm-grid">${danger.map(r=>{
+    const c=r.crash;
+    const fc=c>75?'var(--red)':'#f97316';
+    const bg=c>75?'rgba(244,63,94,0.12)':'rgba(249,115,22,0.1)';
+    const bc=c>75?'rgba(244,63,94,0.35)':'rgba(249,115,22,0.3)';
+    const warn=c>75?'🔴 VERY HIGH RISK':'🟠 HIGH RISK';
+    return`<div class="hmc" style="background:${bg};border-color:${bc}">
+      <div class="hmn">${r.mandi}</div>
+      <div class="hmp" style="color:${fc}">${Number(c).toFixed(0)}%</div>
+      <div class="hmb" style="width:100%;background:${bc};position:relative"><div style="height:100%;width:${c}%;background:${fc};border-radius:2px"></div></div>
+      <div class="hmw" style="color:${fc}">${warn}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--red);margin-top:3px">⛔ Do NOT buy today</div>
+      <div class="hmpr">${fp(r.price)}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+init();
+</script>
+{% endblock %}

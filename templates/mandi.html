@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% set active = "mandi" %}
+{% block title %}Mandi{% endblock %}
+{% block xs %}
+<style>
+.selwrap{position:relative;margin-bottom:16px}
+.selwrap::after{content:'▾';position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--t2);pointer-events:none;font-size:16px}
+.mandi-header{background:linear-gradient(135deg,var(--c1),rgba(245,158,11,0.05));border:1px solid var(--br);border-left:4px solid var(--amber);border-radius:var(--r);padding:16px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.mandi-title{font-size:24px;font-weight:800;letter-spacing:-0.4px;line-height:1}
+.mandi-price-wrap{text-align:right;flex-shrink:0}
+.mandi-price{font-family:var(--fm);font-size:22px;font-weight:700;color:var(--amber);line-height:1}
+.mandi-sub{font-size:11px;color:var(--t2);margin-top:4px}
+.sec-lbl{font-family:var(--fm);font-size:9px;letter-spacing:2.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--br)}
+.sec-lbl.amb{color:var(--amber)}
+.sec-lbl.amb::after{background:rgba(245,158,11,0.2)}
+.ai-block{background:var(--c1);border:1px solid rgba(245,158,11,0.3);border-top:3px solid var(--amber);border-radius:var(--r);padding:16px 14px 14px;margin-bottom:14px}
+.h4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px}
+.hb{background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);padding:12px 6px;text-align:center}
+.hb.hi{border-color:var(--amber);background:rgba(245,158,11,0.07)}
+.ht{font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+.hpv{font-family:var(--fm);font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.1}
+.hrv{font-size:12px;font-weight:700;margin-bottom:6px}
+.hcb{height:2px;background:var(--br);border-radius:1px;overflow:hidden;margin-bottom:3px}
+.hcf{height:100%;background:var(--blue);border-radius:1px}
+.hct{font-size:8px;color:var(--t3)}
+.ai-divider{height:1px;background:var(--br);margin:4px 0 10px}
+.air{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--br)}
+.air:last-child{border-bottom:none}
+.airl{font-size:12px;color:var(--t2)}
+.airv{font-family:var(--fm);font-size:12px;font-weight:700;text-align:right;max-width:58%}
+.my-block{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:14px;margin-bottom:14px}
+.my-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.mys{width:100%;padding:11px 12px;background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);color:var(--txt);font-family:var(--fn);font-size:13px;font-weight:700;outline:none;cursor:pointer;appearance:none;transition:border-color 0.2s}
+.mys:focus{border-color:var(--amber)}
+.go-btn{width:100%;padding:12px;background:var(--amber);color:#000;border:none;border-radius:var(--rs);font-family:var(--fn);font-size:14px;font-weight:800;cursor:pointer;transition:opacity 0.2s}
+.go-btn:hover{opacity:0.88}
+.chart-block{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.period-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:20px;padding:5px 13px;font-family:var(--fm);font-size:10px;color:var(--amber)}
+.chart-leg{display:flex;gap:14px;font-size:10px;color:var(--t2);flex-wrap:wrap}
+.ld2{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+.pstats{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--br)}
+.ps{padding:12px 10px;text-align:center;border-right:1px solid var(--br)}
+.ps:last-child{border-right:none}
+.psl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:5px}
+.psv{font-family:var(--fm);font-size:16px;font-weight:700}
+.no-data{padding:40px 20px;text-align:center;color:var(--t2);font-size:13px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="selwrap">
+  <select class="sel" id="msel" onchange="onch()">
+    <option value="">— Select a Mandi —</option>
+  </select>
+</div>
+<div id="root">
+  <div class="ld">
+    <div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>
+    Select a mandi above
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var CUR='', SIG=[], CHART=null, HIST=null;
+var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+async function init(){
+  try{
+    var resMandis = await fetch('/api/mandis').then(function(r){return r.json();}).catch(function(){return [];});
+    var resSigs   = await fetch('/api/signals').then(function(r){return r.json();}).catch(function(){return {data:[]};});
+    var mandis = resMandis || [];
+    SIG = (resSigs.data) || [];
+
+    // Fallback: build mandi list from signals if dataset returned empty
+    if(!mandis.length && SIG.length){
+      mandis = SIG.map(function(s){return s.mandi;}).filter(Boolean).sort();
+    }
+
+    var sel = document.getElementById('msel');
+    mandis.forEach(function(m){
+      if(!m || m==='nan') return;
+      var o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      sel.appendChild(o);
+    });
+
+    if(!mandis.length){
+      document.getElementById('root').innerHTML =
+        '<div class="er" style="line-height:1.8">&#9888; No mandis loaded.<br><br>' +
+        'Visit <b>/api/debug</b> to diagnose.<br><br>' +
+        'Possible causes:<br>' +
+        '&#8226; CSV path wrong in app.py<br>' +
+        '&#8226; No signal Excel found in Data folder<br>' +
+        '&#8226; Column names mismatch</div>';
+      return;
+    }
+
+    // Auto-select first mandi
+    if(SIG.length){ sel.value = SIG[0].mandi; }
+    else { sel.value = mandis[0]; }
+    onch();
+  } catch(e){
+    console.error('init error', e);
+    document.getElementById('root').innerHTML = '<div class="er">Init failed: '+e.message+'</div>';
+  }
+}
+
+function onch(){
+  var m = document.getElementById('msel').value;
+  if(!m) return;
+  CUR = m; HIST = null;
+  loadAll();
+}
+
+async function loadAll(){
+  if(!CUR) return;
+  document.getElementById('root').innerHTML = '<div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading...</div>';
+  try{
+    var hist = await fetch('/api/history/'+encodeURIComponent(CUR)+'?days=9999').then(function(r){return r.json();});
+    HIST = hist;
+    var sig = null;
+    for(var i=0;i<SIG.length;i++){ if(SIG[i].mandi===CUR){sig=SIG[i];break;} }
+    var now = new Date();
+    buildPage(sig, now.getMonth()+1, now.getFullYear());
+  } catch(e){
+    document.getElementById('root').innerHTML = '<div class="er">Failed to load data: '+e.message+'</div>';
+  }
+}
+
+function buildPage(sig, defM, defY){
+  var root = document.getElementById('root');
+  var price = sig ? fp(sig.price) : '';
+  var regime = sig ? (sig.regime||'') : '';
+
+  root.innerHTML =
+    '<div class="mandi-header an">' +
+      '<div>' +
+        '<div class="mandi-title">'+CUR+'</div>' +
+        (regime ? '<div class="mandi-sub">'+regime+'</div>' : '') +
+      '</div>' +
+      (price ? '<div class="mandi-price-wrap"><div class="mandi-price">'+price+'</div><div class="mandi-sub">Today\'s Price</div></div>' : '') +
+    '</div>' +
+    '<div class="sec-lbl amb">🤖 AI Prediction — Today\'s Outlook</div>' +
+    '<div id="ai-sec"></div>' +
+    '<div style="margin-bottom:14px">' +
+      '<div class="sec-lbl">📅 Select Period to View Chart</div>' +
+      '<div class="my-block">' +
+        '<div class="my-row">' +
+          '<select class="mys" id="msel2"></select>' +
+          '<select class="mys" id="ysel"></select>' +
+        '</div>' +
+        '<button class="go-btn" onclick="onGo()">📊 Show Price Chart</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="sec-lbl">📈 Price History + Forecast</div>' +
+    '<div id="chart-sec"></div>';
+
+  // Month dropdown
+  var ms = document.getElementById('msel2');
+  MN.forEach(function(m,i){
+    var o = document.createElement('option');
+    o.value = i+1; o.textContent = m; ms.appendChild(o);
+  });
+  ms.value = defM;
+
+  // Year dropdown
+  var ys = document.getElementById('ysel');
+  var curY = new Date().getFullYear();
+  for(var y=curY; y>=2021; y--){
+    var o = document.createElement('option');
+    o.value = y; o.textContent = y; ys.appendChild(o);
+  }
+  ys.value = defY;
+
+  renderAI(sig);
+  renderChart(defM, defY);
+}
+
+function onGo(){
+  var m = parseInt((document.getElementById('msel2')||{}).value||0);
+  var y = parseInt((document.getElementById('ysel')||{}).value||0);
+  if(!m||!y){ alert('Please select month and year'); return; }
+  renderChart(m,y);
+}
+
+function renderAI(sig){
+  var el = document.getElementById('ai-sec');
+  if(!el) return;
+  if(!sig){
+    el.innerHTML = '<div style="background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:20px;text-align:center;color:var(--t2);font-size:12px;margin-bottom:14px">No AI signal available for today</div>';
+    return;
+  }
+  var ec = (sig.entry||'').indexOf('BUY TODAY')>=0 ? 'var(--green)' :
+           (sig.entry||'').indexOf('WAIT')>=0 ? 'var(--t2)' :
+           (sig.entry||'').indexOf('AVOID')>=0 ? 'var(--red)' : 'var(--t2)';
+  var pc2 = (sig.plan||'').indexOf('STRONG BUY')>=0 ? 'var(--amber)' :
+            (sig.plan||'').indexOf('BUY')>=0 ? 'var(--green)' :
+            (sig.plan||'').indexOf('AVOID')>=0 ? 'var(--red)' : 'var(--t2)';
+  var crashC = Number(sig.crash)>50 ? 'var(--red)' : Number(sig.crash)>30 ? '#f97316' : 'var(--green)';
+  var zoneI = (sig.zone||'').indexOf('HIGH')>=0 ? '🔴' : (sig.zone||'').indexOf('LOW')>=0 ? '🟢' : '🟡';
+
+  var cards = [
+    {t:'1D', p:sig.pred1, r:sig.ret1, c:sig.conf1, hi:false},
+    {t:'3D', p:sig.pred3, r:sig.ret3, c:sig.conf3, hi:false},
+    {t:'7D', p:sig.pred7, r:sig.ret7, c:sig.conf7, hi:false},
+    {t:'14D ✅', p:sig.pred14, r:sig.ret14, c:sig.conf14, hi:true}
+  ];
+  var hh = '';
+  cards.forEach(function(h){
+    hh += '<div class="hb'+(h.hi?' hi':'')+'">'+
+      '<div class="ht">'+h.t+'</div>'+
+      '<div class="hpv">'+fp(h.p)+'</div>'+
+      '<div class="hrv '+rc(h.r)+'">'+fr(h.r)+'</div>'+
+      '<div class="hcb"><div class="hcf" style="width:'+(h.c||0)+'%"></div></div>'+
+      '<div class="hct">'+(h.c||0)+'%</div>'+
+    '</div>';
+  });
+
+  el.innerHTML =
+    '<div class="ai-block an">' +
+      '<div class="h4">'+hh+'</div>' +
+      '<div class="ai-divider"></div>' +
+      '<div class="air"><span class="airl">Entry Signal (1d)</span><span class="airv" style="color:'+ec+'">'+(sig.entry||'—')+'</span></div>' +
+      '<div class="air"><span class="airl">Planning Signal (14d)</span><span class="airv" style="color:'+pc2+'">'+(sig.plan||'—')+'</span></div>' +
+      '<div class="air"><span class="airl">Crash Risk</span><span class="airv" style="color:'+crashC+'">'+(sig.crash||0)+'%</span></div>' +
+      '<div class="air"><span class="airl">Procurement Score</span><span class="airv acc">'+(sig.score||0)+'/10</span></div>' +
+      '<div class="air"><span class="airl">Price Zone</span><span class="airv">'+zoneI+' '+(sig.zone||'—')+'</span></div>' +
+      '<div class="air"><span class="airl">Arrival Pressure</span><span class="airv">'+(sig.arrival||'—')+'x</span></div>' +
+    '</div>';
+}
+
+function renderChart(month, year){
+  var el = document.getElementById('chart-sec');
+  if(!el || !HIST) return;
+
+  var allDates = HIST.dates||[];
+  var allPrices = HIST.prices||[];
+  var allArr = HIST.arrivals||[];
+  var allSeas = HIST.seasons||[];
+
+  var dates=[], prices=[], arrivals=[], seasons=[];
+  allDates.forEach(function(d,i){
+    var dt = new Date(d);
+    if(dt.getMonth()+1===month && dt.getFullYear()===year){
+      dates.push(d.slice(5));
+      prices.push(allPrices[i]);
+      arrivals.push(allArr[i]||0);
+      seasons.push(allSeas[i]||'normal');
+    }
+  });
+
+  if(!prices.length){
+    el.innerHTML = '<div class="chart-block"><div class="no-data">No data for '+MN[month-1]+' '+year+'</div></div>';
+    return;
+  }
+
+  var minP = Math.min.apply(null,prices);
+  var maxP = Math.max.apply(null,prices);
+  var sum = prices.reduce(function(a,b){return a+b;},0);
+  var avgP = Math.round(sum/prices.length);
+  var chg = prices.length>1 ? ((prices[prices.length-1]-prices[0])/prices[0]*100).toFixed(1) : '0';
+  var sig = null;
+  for(var i=0;i<SIG.length;i++){ if(SIG[i].mandi===CUR){sig=SIG[i];break;} }
+
+  el.innerHTML =
+    '<div class="chart-block an">' +
+      '<div style="padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;border-bottom:1px solid var(--br)">' +
+        '<span class="period-badge">📅 '+MN[month-1]+' '+year+' · '+prices.length+' days</span>' +
+        '<div class="chart-leg">' +
+          '<span><span class="ld2" style="background:#3b82f6"></span>Price</span>' +
+          '<span><span class="ld2" style="background:#f59e0b"></span>Forecast</span>' +
+          '<span><span class="ld2" style="background:rgba(34,211,238,0.7)"></span>Arrivals</span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:12px 14px 0"><canvas id="mc" height="230"></canvas></div>' +
+      '<div class="pstats">' +
+        '<div class="ps"><div class="psl">Avg Price</div><div class="psv acc">₹'+avgP.toLocaleString('en-IN')+'</div></div>' +
+        '<div class="ps"><div class="psl">Low → High</div><div class="psv" style="font-size:11px"><span class="pos">₹'+minP.toLocaleString('en-IN')+'</span> <span style="color:var(--t3)">→</span> <span class="neg">₹'+maxP.toLocaleString('en-IN')+'</span></div></div>' +
+        '<div class="ps"><div class="psl">Change</div><div class="psv '+(Number(chg)>=0?'pos':'neg')+'">'+(Number(chg)>=0?'+':'')+chg+'%</div></div>' +
+      '</div>' +
+    '</div>';
+
+  setTimeout(function(){ drawChart(dates,prices,arrivals,seasons,sig); }, 60);
+}
+
+function drawChart(dates,prices,arrivals,seasons,sig){
+  var canvas = document.getElementById('mc');
+  if(!canvas) return;
+  if(CHART){ CHART.destroy(); CHART=null; }
+
+  var seasonPlugin = {
+    id:'sb',
+    beforeDraw: function(chart){
+      var ca = chart.chartArea;
+      var x = chart.scales.x;
+      if(!ca||!x) return;
+      var ctx = chart.ctx;
+      seasons.forEach(function(s,i){
+        if(s==='normal') return;
+        var col = s==='harvest' ? 'rgba(245,158,11,0.09)' : 'rgba(59,130,246,0.06)';
+        var x1 = x.getPixelForValue(i);
+        var x2 = x.getPixelForValue(i+1);
+        ctx.fillStyle = col;
+        ctx.fillRect(x1, ca.top, (x2-x1)||2, ca.bottom-ca.top);
+      });
+    }
+  };
+
+  var lastP = prices[prices.length-1];
+  var labels = dates.concat(['+1d','+3d','+7d','+14d']);
+  var nullArr = [null,null,null,null];
+  var fcast = new Array(Math.max(prices.length-1,0)).fill(null).concat([lastP]);
+  if(sig){ fcast = fcast.concat([sig.pred1||null, sig.pred3||null, sig.pred7||null, sig.pred14||null]); }
+  else { fcast = fcast.concat(nullArr); }
+
+  CHART = new Chart(canvas.getContext('2d'), {
+    plugins: [seasonPlugin],
+    data: {
+      labels: labels,
+      datasets: [
+        {type:'line', label:'Price', data: prices.concat(nullArr),
+         borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.08)',
+         borderWidth:2, pointRadius:3, pointBackgroundColor:'#3b82f6',
+         tension:0.3, fill:true, yAxisID:'y'},
+        {type:'line', label:'Forecast', data: fcast,
+         borderColor:'#f59e0b', backgroundColor:'rgba(245,158,11,0.04)',
+         borderWidth:2.5, borderDash:[6,4],
+         pointRadius: function(c){ return c.dataIndex>=prices.length?5:0; },
+         pointBackgroundColor:'#f59e0b', tension:0.3, fill:false, yAxisID:'y'},
+        {type:'bar', label:'Arrivals', data: arrivals.concat(nullArr),
+         backgroundColor:'rgba(34,211,238,0.22)', borderRadius:3, yAxisID:'y2'}
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      interaction:{intersect:false, mode:'index'},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0b1120', borderColor:'#1c2b40', borderWidth:1,
+          callbacks:{
+            label: function(c){
+              if(c.dataset.label==='Arrivals') return ' Arrival: '+(c.raw||'—')+'q';
+              return ' ₹'+(c.raw!=null ? Number(c.raw).toLocaleString('en-IN',{maximumFractionDigits:0}) : '—');
+            }
+          }
+        }
+      },
+      scales:{
+        x:{grid:{color:'#1c2b40'}, ticks:{maxTicksLimit:12, maxRotation:45, font:{size:9}}},
+        y:{position:'left', grid:{color:'#1c2b40'}, ticks:{callback:function(v){return '₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0});}}},
+        y2:{position:'right', grid:{display:false}, ticks:{callback:function(v){return v+'q';}}}
+      }
+    }
+  });
+}
+
+init();
+</script>
+{% endblock %}

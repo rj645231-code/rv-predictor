@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% set active = "compare" %}
+{% block title %}Compare 2 Mandis{% endblock %}
+{% block xs %}
+<style>
+.csel-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.csel{width:100%;padding:12px 10px;background:var(--c2);border:1px solid var(--br);border-radius:var(--r);color:var(--txt);font-family:var(--fn);font-size:13px;font-weight:700;appearance:none;outline:none;cursor:pointer;transition:border-color 0.2s}
+.csel:focus{border-color:var(--amber)}
+.my-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.mys{width:100%;padding:11px 10px;background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);color:var(--txt);font-family:var(--fn);font-size:13px;font-weight:600;outline:none;cursor:pointer;appearance:none;transition:border-color 0.2s}
+.mys:focus{border-color:var(--amber)}
+.go-btn{width:100%;padding:12px;background:var(--amber);color:#000;border:none;border-radius:var(--r);font-family:var(--fn);font-size:14px;font-weight:800;cursor:pointer;margin-bottom:14px;transition:opacity 0.2s}
+.go-btn:hover{opacity:0.88}
+.winner-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.wbox{background:var(--c1);border:2px solid var(--br);border-radius:var(--r);padding:14px;text-align:center}
+.wbox.win{border-color:var(--green);background:rgba(16,185,129,0.06)}
+.wl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:5px}
+.wn{font-size:14px;font-weight:800;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wv{font-family:var(--fm);font-size:18px;font-weight:700}
+.stats2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.sc{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:13px}
+.scn{font-size:12px;font-weight:800;margin-bottom:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.scl{font-size:10px;color:var(--t2)}
+.scv{font-family:var(--fm);font-size:12px;font-weight:700}
+.period-tag{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.2);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;font-family:var(--fm);font-size:11px;color:var(--amber);text-align:center}
+</style>
+{% endblock %}
+{% block content %}
+<!-- Select exactly 2 mandis -->
+<div class="csel-row">
+  <select class="csel" id="s1"><option value="">Mandi 1</option></select>
+  <select class="csel" id="s2"><option value="">Mandi 2</option></select>
+</div>
+
+<!-- Month + Year picker -->
+<div class="my-row">
+  <select class="mys" id="msel"><option value="">Select Month</option></select>
+  <select class="mys" id="ysel"><option value="">Select Year</option></select>
+</div>
+
+<button class="go-btn" onclick="go()">⚖️ Compare — Show Chart</button>
+
+<div id="root"><div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Select 2 mandis then tap Compare</div></div>
+{% endblock %}
+{% block scripts %}
+<script>
+let CC=null;let CA=null;
+const MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const COLS=['#3b82f6','#f59e0b'];
+
+async function init(){
+  const[mr,sr2]=await Promise.all([
+    fetch('/api/mandis').then(r=>r.json()),
+    fetch('/api/signals').then(r=>r.json()),
+  ]);
+  const sigs=(sr2.data||[]).map(s=>s.mandi);
+  ['s1','s2'].forEach((id,i)=>{
+    const el=document.getElementById(id);
+    (mr||[]).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;el.appendChild(o);});
+    if(i<sigs.length)el.value=sigs[i];
+  });
+  const ms=document.getElementById('msel');
+  MN.forEach((m,i)=>{const o=document.createElement('option');o.value=i+1;o.textContent=m;ms.appendChild(o);});
+  const ys=document.getElementById('ysel');
+  const curY=new Date().getFullYear();
+  for(let y=curY;y>=2021;y--){const o=document.createElement('option');o.value=y;o.textContent=y;ys.appendChild(o);}
+  const now=new Date();ms.value=now.getMonth()+1;ys.value=now.getFullYear();
+}
+
+async function go(){
+  const m1=document.getElementById('s1').value;
+  const m2=document.getElementById('s2').value;
+  const month=parseInt(document.getElementById('msel').value||0);
+  const year=parseInt(document.getElementById('ysel').value||0);
+  if(!m1||!m2)return alert('Please select both mandis');
+  if(m1===m2)return alert('Please select 2 different mandis');
+  if(!month||!year)return alert('Please select month and year');
+
+  document.getElementById('root').innerHTML='<div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading comparison...</div>';
+
+  try{
+    const[h1,h2]=await Promise.all([
+      fetch('/api/history/'+encodeURIComponent(m1)+'?days=9999').then(r=>r.json()),
+      fetch('/api/history/'+encodeURIComponent(m2)+'?days=9999').then(r=>r.json()),
+    ]);
+    render(m1,m2,h1,h2,month,year);
+  }catch(e){document.getElementById('root').innerHTML='<div class="er">Failed to load data</div>';}
+}
+
+function fmy(hist,month,year){
+  const out={dates:[],prices:[],arrivals:[]};
+  (hist.dates||[]).forEach((d,i)=>{
+    const dt=new Date(d);
+    if(dt.getMonth()+1===month&&dt.getFullYear()===year){
+      out.dates.push(d.slice(5));
+      out.prices.push(hist.prices[i]);
+      out.arrivals.push(hist.arrivals[i]);
+    }
+  });
+  return out;
+}
+
+function calcStats(f){
+  const p=f.prices;
+  if(!p.length)return{avg:0,min:0,max:0,chg:0,latest:0};
+  const avg=Math.round(p.reduce((a,b)=>a+b,0)/p.length);
+  return{avg,min:Math.min(...p),max:Math.max(...p),latest:p[p.length-1],chg:p.length>1?((p[p.length-1]-p[0])/p[0]*100).toFixed(1):0};
+}
+
+function render(m1,m2,h1,h2,month,year){
+  const f1=fmy(h1,month,year);
+  const f2=fmy(h2,month,year);
+  const s1=calcStats(f1);
+  const s2=calcStats(f2);
+
+  if(!f1.prices.length&&!f2.prices.length){
+    document.getElementById('root').innerHTML=`<div class="er">No data for ${MN[month-1]} ${year}</div>`;return;
+  }
+
+  const cheaper=s1.avg<=s2.avg?m1:m2;
+  const spread=Math.abs(s1.avg-s2.avg);
+
+  const statCards=[{m:m1,s:s1,col:COLS[0],f:f1},{m:m2,s:s2,col:COLS[1],f:f2}].map(({m,s,col,f})=>`
+    <div class="sc" style="border-color:${col}44">
+      <div class="scn" style="color:${col}">${m}</div>
+      <div class="scr"><span class="scl">Avg Price</span><span class="scv acc">₹${s.avg.toLocaleString('en-IN')}</span></div>
+      <div class="scr"><span class="scl">Lowest</span><span class="scv pos">₹${s.min.toLocaleString('en-IN')}</span></div>
+      <div class="scr"><span class="scl">Highest</span><span class="scv neg">₹${s.max.toLocaleString('en-IN')}</span></div>
+      <div class="scr"><span class="scl">Change</span><span class="scv ${Number(s.chg)>=0?'pos':'neg'}">${Number(s.chg)>=0?'+':''}${s.chg}%</span></div>
+      <div class="scr"><span class="scl">Days recorded</span><span class="scv">${f.prices.length}</span></div>
+    </div>`).join('');
+
+  const leg=[m1,m2].map((m,i)=>`<span style="display:inline-flex;align-items:center;gap:5px;font-size:11px"><span style="width:20px;height:3px;background:${COLS[i]};display:inline-block;border-radius:2px"></span>${m}</span>`).join('<span style="margin:0 8px;color:var(--t3)">|</span>');
+
+  document.getElementById('root').innerHTML=`
+    <div class="period-tag">📅 ${MN[month-1]} ${year}</div>
+
+    <div class="winner-box">
+      <div class="wbox win">
+        <div class="wl">✅ Cheaper to Buy</div>
+        <div class="wn" style="color:var(--green)">${cheaper}</div>
+        <div class="wv pos">₹${Math.min(s1.avg,s2.avg).toLocaleString('en-IN')}</div>
+        <div style="font-size:10px;color:var(--t2);margin-top:4px">avg this month</div>
+      </div>
+      <div class="wbox">
+        <div class="wl">💰 Price Difference</div>
+        <div class="wn" style="color:var(--amber)">Avg Gap</div>
+        <div class="wv neg">₹${spread.toLocaleString('en-IN')}</div>
+        <div style="font-size:10px;color:var(--t2);margin-top:4px">per quintal</div>
+      </div>
+    </div>
+
+    <div class="sec">Price Chart — ${MN[month-1]} ${year}</div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:14px;padding:12px 14px 0;flex-wrap:wrap">${leg}</div>
+      <div style="padding:8px 14px 14px"><canvas id="cc" height="260"></canvas></div>
+    </div>
+
+    <div class="sec">Daily Arrivals (Quintals)</div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="padding:12px 14px 14px"><canvas id="ca" height="160"></canvas></div>
+    </div>
+
+    <div class="sec">This Month Statistics</div>
+    <div class="stats2">${statCards}</div>`;
+
+  setTimeout(()=>drawCharts(f1,f2,m1,m2),60);
+}
+
+function drawCharts(f1,f2,m1,m2){
+  // Price chart
+  if(CC){CC.destroy();CC=null;}
+  if(CA){CA.destroy();CA=null;}
+
+  const allDates=new Set([...f1.dates,...f2.dates]);
+  const sorted=[...allDates].sort();
+  const d1={},d2={},a1={},a2={};
+  f1.dates.forEach((d,i)=>{d1[d]=f1.prices[i];a1[d]=f1.arrivals[i];});
+  f2.dates.forEach((d,i)=>{d2[d]=f2.prices[i];a2[d]=f2.arrivals[i];});
+
+  const pc=document.getElementById('cc');
+  if(pc){
+    CC=new Chart(pc.getContext('2d'),{
+      data:{labels:sorted,datasets:[
+        {type:'line',label:m1,data:sorted.map(d=>d1[d]??null),borderColor:COLS[0],borderWidth:2.5,pointRadius:4,pointBackgroundColor:COLS[0],tension:0.3,fill:false,spanGaps:true},
+        {type:'line',label:m2,data:sorted.map(d=>d2[d]??null),borderColor:COLS[1],borderWidth:2.5,pointRadius:4,pointBackgroundColor:COLS[1],tension:0.3,fill:false,spanGaps:true},
+      ]},
+      options:{responsive:true,maintainAspectRatio:true,interaction:{intersect:false,mode:'index'},
+        plugins:{legend:{labels:{boxWidth:10,padding:14}},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+          callbacks:{label:c=>` ${c.dataset.label}: ₹${c.raw!=null?Number(c.raw).toLocaleString('en-IN',{maximumFractionDigits:0}):'—'}`}}},
+        scales:{
+          x:{grid:{color:'#1c2b40'},ticks:{maxTicksLimit:12,maxRotation:45,font:{size:9}}},
+          y:{grid:{color:'#1c2b40'},ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}}
+        }}
+    });
+  }
+
+  const ac=document.getElementById('ca');
+  if(ac){
+    CA=new Chart(ac.getContext('2d'),{
+      data:{labels:sorted,datasets:[
+        {type:'bar',label:m1,data:sorted.map(d=>a1[d]??null),backgroundColor:COLS[0]+'55',borderColor:COLS[0],borderWidth:1,borderRadius:3},
+        {type:'bar',label:m2,data:sorted.map(d=>a2[d]??null),backgroundColor:COLS[1]+'55',borderColor:COLS[1],borderWidth:1,borderRadius:3},
+      ]},
+      options:{responsive:true,interaction:{intersect:false,mode:'index'},
+        plugins:{legend:{labels:{boxWidth:10,padding:14}},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+          callbacks:{label:c=>` ${c.dataset.label}: ${c.raw??'—'}q`}}},
+        scales:{
+          x:{grid:{color:'#1c2b40'},ticks:{maxTicksLimit:12,maxRotation:45,font:{size:9}}},
+          y:{grid:{color:'#1c2b40'},ticks:{callback:v=>v+'q'}}
+        }}
+    });
+  }
+}
+
+init();
+</script>
+{% endblock %}

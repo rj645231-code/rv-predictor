@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% set active = "history" %}
+{% block title %}Seasonal Guide{% endblock %}
+{% block xs %}
+<style>
+/* Trader-friendly insight boxes */
+.tip-box{border-radius:var(--r);padding:14px 16px;margin-bottom:10px;border:1px solid}
+.tip-icon{font-size:22px;margin-bottom:6px}
+.tip-title{font-size:13px;font-weight:800;margin-bottom:4px}
+.tip-body{font-size:12px;line-height:1.6;color:rgba(255,255,255,0.75)}
+.tip-val{font-family:var(--fm);font-size:22px;font-weight:700;margin:4px 0}
+/* Month heatmap */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.mcell{border-radius:var(--rs);padding:11px 6px;text-align:center;border:1px solid transparent;cursor:default}
+.mcn{font-size:10px;font-weight:800;margin-bottom:5px}
+.mcp{font-family:var(--fm);font-size:13px;font-weight:700}
+.mca{font-size:9px;margin-top:3px;opacity:0.55}
+/* Best months ranking */
+.brow{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--br)}
+.brow:last-child{border-bottom:none}
+.brk{font-family:var(--fm);font-size:13px;font-weight:700;color:var(--t3);min-width:22px;text-align:center}
+.brn{flex:1;font-size:13px;font-weight:700}
+.brbar{width:80px}
+.brbt{height:5px;background:var(--br);border-radius:3px;overflow:hidden;margin-bottom:2px}
+.brbf{height:100%;border-radius:3px}
+.brp{font-family:var(--fm);font-size:12px;font-weight:700;min-width:62px;text-align:right}
+.brtag{font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;font-family:var(--fm);margin-left:4px;vertical-align:middle}
+/* Year cards */
+.ygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px}
+.yc{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:14px}
+.yl{font-family:var(--fm);font-size:20px;font-weight:800;color:var(--t2);margin-bottom:4px}
+.yp{font-family:var(--fm);font-size:22px;font-weight:800}
+.yb{height:5px;background:var(--br);border-radius:3px;overflow:hidden;margin-top:8px}
+.ybf{height:100%;border-radius:3px}
+/* Summary strip at top */
+.summary4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+.s4b{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:14px}
+.s4l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:6px}
+.s4v{font-family:var(--fm);font-size:20px;font-weight:700}
+.s4s{font-size:11px;color:var(--t2);margin-top:4px}
+</style>
+{% endblock %}
+{% block content %}
+
+<!-- Mandi filter -->
+<div style="margin-bottom:14px">
+  <select class="sel" id="msel" onchange="reload()">
+    <option value="">All Mandis Combined</option>
+  </select>
+</div>
+
+<div id="root"><div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading seasonal data...</div></div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MNL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+let CH={};
+
+async function init(){
+  const ms=await fetch('/api/mandis').then(r=>r.json()).catch(()=>[]);
+  const sel=document.getElementById('msel');
+  (ms||[]).forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+  reload();
+}
+
+async function reload(){
+  const m=document.getElementById('msel').value;
+  document.getElementById('root').innerHTML='<div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading...</div>';
+  const url='/api/seasonality'+(m?'?mandi='+encodeURIComponent(m):'');
+  const data=await fetch(url).then(r=>r.json()).catch(()=>({error:'Failed'}));
+  if(data.error){document.getElementById('root').innerHTML=`<div class="er">${data.error}</div>`;return;}
+  // Destroy old charts
+  Object.values(CH).forEach(c=>{try{c.destroy();}catch(e){}});
+  CH={};
+  render(data);
+}
+
+function render(data){
+  const{monthly:m,weekly:w,yearly:y}=data;
+  const minP=Math.min(...m.prices);
+  const maxP=Math.max(...m.prices);
+  const bestBuyIdx=m.prices.indexOf(minP);
+  const peakIdx=m.prices.indexOf(maxP);
+  const peakArrIdx=m.arrivals.indexOf(Math.max(...m.arrivals));
+  const avgAll=Math.round(m.prices.reduce((a,b)=>a+b,0)/m.prices.length);
+  const priceDiff=maxP-minP;
+
+  // Plain language tips for traders
+  const tips=`
+    <!-- KEY INSIGHT BOX -->
+    <div class="tip-box" style="background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.25)">
+      <div class="tip-icon">🛒</div>
+      <div class="tip-title" style="color:var(--green)">Best Time to Buy — ${MNL[m.months[bestBuyIdx]-1]}</div>
+      <div class="tip-val pos">₹${minP.toLocaleString('en-IN')}</div>
+      <div class="tip-body">Historically, <strong>${MNL[m.months[bestBuyIdx]-1]}</strong> has the <strong>lowest average prices</strong>. This is harvest season — more mustard arrives in market, so prices fall. Best month for procurement and stocking.</div>
+    </div>
+
+    <div class="tip-box" style="background:rgba(244,63,94,0.08);border-color:rgba(244,63,94,0.25)">
+      <div class="tip-icon">📈</div>
+      <div class="tip-title" style="color:var(--red)">Prices Peak in — ${MNL[m.months[peakIdx]-1]}</div>
+      <div class="tip-val neg">₹${maxP.toLocaleString('en-IN')}</div>
+      <div class="tip-body">By <strong>${MNL[m.months[peakIdx]-1]}</strong>, old crop is almost finished. Supply dries up. Prices reach yearly peak. If you stocked up in ${MNL[m.months[bestBuyIdx]-1]}, you can sell or process at best margin now.</div>
+    </div>
+
+    <div class="summary4">
+      <div class="s4b">
+        <div class="s4l">💰 Max Profit Window</div>
+        <div class="s4v neg">₹${priceDiff.toLocaleString('en-IN')}</div>
+        <div class="s4s">Buy in ${MN[m.months[bestBuyIdx]-1]} → Sell in ${MN[m.months[peakIdx]-1]}</div>
+      </div>
+      <div class="s4b">
+        <div class="s4l">📦 Peak Supply Month</div>
+        <div class="s4v" style="color:var(--cyan)">${MN[m.months[peakArrIdx]-1]}</div>
+        <div class="s4s">${m.arrivals[peakArrIdx].toFixed(0)}q avg — most mandis overflow</div>
+      </div>
+      <div class="s4b">
+        <div class="s4l">📊 Year Average</div>
+        <div class="s4v acc">₹${avgAll.toLocaleString('en-IN')}</div>
+        <div class="s4s">5-year average price</div>
+      </div>
+      <div class="s4b">
+        <div class="s4l">📉 Cheapest Month</div>
+        <div class="s4v pos">${MN[m.months[bestBuyIdx]-1]}</div>
+        <div class="s4s">₹${(avgAll-minP).toFixed(0)} below average</div>
+      </div>
+    </div>`;
+
+  // Monthly heatmap
+  const monthHtml=m.months.map((mn,i)=>{
+    const p=m.prices[i];const arr=m.arrivals[i];
+    const pct=(p-minP)/(maxP-minP||1);
+    const r2=Math.round(pct*210);const g=Math.round((1-pct)*175);
+    const bg=`rgba(${r2},${g},40,0.14)`;const bc=`rgba(${r2},${g},40,0.28)`;const tc=`rgb(${r2},${g},40)`;
+    return`<div class="mcell" style="background:${bg};border-color:${bc}">
+      <div class="mcn">${MN[mn-1]}</div>
+      <div class="mcp" style="color:${tc}">₹${p.toLocaleString('en-IN')}</div>
+      <div class="mca">${arr.toFixed(0)}q</div>
+    </div>`;
+  }).join('');
+
+  // Best months ranked — trader language
+  const ranked=[...m.months.map((mn,i)=>({name:MNL[mn-1],short:MN[mn-1],price:m.prices[i],arr:m.arrivals[i]}))].sort((a,b)=>a.price-b.price);
+  const maxMp=Math.max(...ranked.map(x=>x.price));
+  const buyRanked=ranked.map((r,i)=>{
+    const pct=Math.round(r.price/maxMp*100);
+    const col=i<3?'var(--green)':i>8?'var(--red)':'var(--amber)';
+    const tag=i===0?'<span class="brtag" style="background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3)">BEST BUY</span>':
+              i===1?'<span class="brtag" style="background:rgba(16,185,129,0.1);color:var(--green)">GOOD</span>':
+              i===2?'<span class="brtag" style="background:rgba(245,158,11,0.12);color:var(--amber)">OK</span>':
+              i>8?'<span class="brtag" style="background:rgba(244,63,94,0.1);color:var(--red)">AVOID</span>':'';
+    return`<div class="brow">
+      <div class="brk" style="color:${col}">${i+1}</div>
+      <div class="brn">${r.short}${tag}</div>
+      <div class="brbar"><div class="brbt"><div class="brbf" style="width:${pct}%;background:${col}"></div></div>
+        <div style="font-size:8px;color:var(--t3)">${r.arr.toFixed(0)}q supply</div>
+      </div>
+      <div class="brp ${i<3?'pos':i>8?'neg':'acc'}">₹${r.price.toLocaleString('en-IN')}</div>
+    </div>`;
+  }).join('');
+
+  // Year cards
+  const maxYp=Math.max(...y.prices);
+  const yearCards=y.years.map((yr,i)=>{
+    const p=y.prices[i];const pct=Math.round(p/maxYp*100);
+    const chg=i>0?((p-y.prices[i-1])/y.prices[i-1]*100).toFixed(1):null;
+    const col=!chg?'var(--t2)':Number(chg)>=0?'var(--red)':'var(--green)';
+    const note=chg?`${Number(chg)>=0?'📈 Prices rose':'📉 Prices fell'} ${Math.abs(Number(chg))}% vs ${y.years[i-1]}`:'First year in data';
+    return`<div class="yc an" style="animation-delay:${i*0.05}s">
+      <div class="yl">${yr}</div>
+      <div class="yp acc">₹${p.toLocaleString('en-IN')}</div>
+      ${chg!==null?`<div style="font-size:11px;color:${col};margin-top:4px">${Number(chg)>=0?'+':''}${chg}%</div>`:''}
+      <div style="font-size:9px;color:var(--t2);margin-top:3px">${note}</div>
+      <div class="yb"><div class="ybf" style="width:${pct}%;background:${pct>80?'var(--red)':pct>60?'var(--amber)':'var(--green)'}"></div></div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('root').innerHTML=`
+    ${tips}
+
+    <div class="sec">Monthly Price Map — Which Month is Cheapest?</div>
+    <div class="card">
+      <div style="padding:12px 12px 6px"><div class="mgrid">${monthHtml}</div>
+        <div style="font-size:10px;color:var(--t2);text-align:center;padding:6px 0 4px">
+          🟢 Green = cheap, buy here &nbsp;|&nbsp; 🔴 Red = expensive, prices high
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">Best Months to Buy — Trader Ranking</div>
+    <div class="card">${buyRanked}</div>
+
+    <div class="sec">Price Chart — Month by Month Average</div>
+    <div class="card"><div style="padding:14px"><canvas id="mc" height="200"></canvas></div></div>
+
+    <div class="sec">Arrival Pattern — When Does Mustard Arrive?</div>
+    <div class="tip-box" style="background:rgba(6,182,212,0.07);border-color:rgba(6,182,212,0.2);margin-bottom:10px">
+      <div class="tip-body">📦 <strong>More arrivals = lower prices.</strong> When farmers bring large stock to mandi (usually March-April harvest), prices fall. When stock is low (Aug-Oct), prices rise. Use this chart to plan when to buy and when to hold.</div>
+    </div>
+    <div class="card"><div style="padding:14px"><canvas id="wc" height="170"></canvas></div></div>
+
+    <div class="sec">Year by Year — How Prices Changed</div>
+    <div class="ygrid">${yearCards}</div>
+    <div class="card"><div style="padding:14px"><canvas id="yc2" height="170"></canvas></div></div>`;
+
+  setTimeout(()=>{drawM(m);drawW(w);drawY(y);},80);
+}
+
+function drawM(m){
+  const c=document.getElementById('mc');if(!c)return;if(CH.m)CH.m.destroy();
+  CH.m=new Chart(c.getContext('2d'),{
+    data:{labels:m.labels,datasets:[
+      {type:'line',label:'Avg Price',data:m.prices,borderColor:'#f59e0b',borderWidth:2.5,pointRadius:5,pointBackgroundColor:'#f59e0b',tension:0.4,fill:false,yAxisID:'y'},
+      {type:'bar',label:'Avg Arrivals',data:m.arrivals,backgroundColor:'rgba(34,211,238,0.2)',borderRadius:3,yAxisID:'y2'},
+    ]},
+    options:{responsive:true,interaction:{intersect:false,mode:'index'},
+      plugins:{legend:{labels:{boxWidth:10,padding:16}},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+        callbacks:{label:c=>c.dataset.label==='Avg Arrivals'?` Arrivals: ${c.raw?.toFixed(0)}q`:` Avg Price: ₹${c.raw?.toLocaleString('en-IN',{maximumFractionDigits:0})}`}}},
+      scales:{x:{grid:{color:'#1c2b40'}},y:{position:'left',grid:{color:'#1c2b40'},ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}},y2:{position:'right',grid:{display:false},ticks:{callback:v=>v+'q'}}}}
+  });
+}
+
+function drawW(w){
+  const c=document.getElementById('wc');if(!c)return;if(CH.w)CH.w.destroy();
+  const avg=w.prices.reduce((a,b)=>a+b,0)/w.prices.length;
+  CH.w=new Chart(c.getContext('2d'),{
+    data:{labels:w.arrivals.map((a,i)=>'W'+(w.weeks[i]||i+1)),datasets:[
+      {type:'bar',label:'Arrivals per Week (avg)',data:w.arrivals,
+       backgroundColor:w.arrivals.map(a=>a>avg*1.5?'rgba(244,63,94,0.35)':a<avg*0.6?'rgba(16,185,129,0.35)':'rgba(34,211,238,0.25)'),
+       borderRadius:3},
+    ]},
+    options:{responsive:true,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+        callbacks:{title:c=>'Week '+w.weeks[c[0].dataIndex],label:c=>` Arrivals: ${c.raw?.toFixed(0)}q`}}},
+      scales:{x:{grid:{color:'#1c2b40'},ticks:{maxTicksLimit:15,maxRotation:0}},y:{grid:{color:'#1c2b40'},ticks:{callback:v=>v+'q'}}}}
+  });
+}
+
+function drawY(y){
+  const c=document.getElementById('yc2');if(!c)return;if(CH.y)CH.y.destroy();
+  CH.y=new Chart(c.getContext('2d'),{
+    data:{labels:y.years,datasets:[
+      {type:'bar',label:'Annual Avg Price',data:y.prices,
+       backgroundColor:y.prices.map((p,i)=>i>0&&p>y.prices[i-1]?'rgba(244,63,94,0.28)':'rgba(16,185,129,0.28)'),
+       borderColor:y.prices.map((p,i)=>i>0&&p>y.prices[i-1]?'#f43f5e':'#10b981'),
+       borderWidth:2,borderRadius:8},
+      {type:'line',label:'Trend',data:y.prices,borderColor:'#f59e0b',borderWidth:2.5,pointRadius:6,pointBackgroundColor:'#f59e0b',tension:0.3},
+    ]},
+    options:{responsive:true,
+      plugins:{legend:{labels:{boxWidth:10,padding:14}},tooltip:{backgroundColor:'#0b1120',borderColor:'#1c2b40',borderWidth:1,
+        callbacks:{label:c=>` ₹${c.raw?.toLocaleString('en-IN',{maximumFractionDigits:0})}`}}},
+      scales:{x:{grid:{color:'#1c2b40'}},y:{grid:{color:'#1c2b40'},ticks:{callback:v=>'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0})}}}}
+  });
+}
+
+init();
+</script>
+{% endblock %}
