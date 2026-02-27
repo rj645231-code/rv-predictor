@@ -233,11 +233,28 @@ def api_signals():
             normalized.append({
                 "mandi": row.get("Mandi"),
                 "price": row.get("Current Price"),
+
+                "pred1": row.get("Pred 1d ₹"),
+                "pred3": row.get("Pred 3d ₹"),
+                "pred7": row.get("Pred 7d ₹"),
+                "pred14": row.get("Pred 14d ₹"),
+
+                "ret1": row.get("Ret 1d %"),
+                "ret3": row.get("Ret 3d %"),
+                "ret7": row.get("Ret 7d %"),
+                "ret14": row.get("Ret 14d %"),
+
+                "conf1": row.get("Conf 1d %"),
+                "conf3": row.get("Conf 3d %"),
+                "conf7": row.get("Conf 7d %"),
+                "conf14": row.get("Conf 14d %"),
+
                 "score": row.get("Procurement Score"),
                 "crash": row.get("Crash Risk %"),
                 "entry": row.get("Entry Signal"),
-                "ret14": row.get("Ret 14d %"),
-                "conf14": row.get("Conf 14d %"),
+                "zone": row.get("Price Zone"),
+                "regime": row.get("Regime"),
+                "trend": row.get("Trend Shape"),
             })
 
         return jsonify({
@@ -248,7 +265,6 @@ def api_signals():
 
     except Exception as e:
         return jsonify({"error": str(e), "data": []})
-
 # ── API: MANDI PRICE HISTORY ───────────────────────────────────
 
 @app.route('/api/history/<mandi>')
@@ -459,39 +475,36 @@ def api_spread():
         rows = []
 
         for _, row in df.iterrows():
-            mandi = str(row.get('mandi', '')).strip()
-            price = float(row.get('price', 0) or 0)
-            score = float(row.get('score', 0) or 0)
-            entry = str(row.get('entry', ''))
-            crash = float(row.get('crash', 0) or 0)
+            mandi = row.get("Mandi")
+            price = row.get("Current Price")
+            score = row.get("Procurement Score")
+            crash = row.get("Crash Risk %")
+            entry = row.get("Entry Signal")
 
-            if mandi and price > 0:
+            if mandi and price:
                 rows.append({
-                    'mandi': mandi,
-                    'price': price,
-                    'score': score,
-                    'entry': entry,
-                    'crash': crash
+                    "mandi": mandi,
+                    "price": float(price),
+                    "score": float(score) if score else 0,
+                    "crash": float(crash) if crash else 0,
+                    "entry": entry
                 })
 
         if not rows:
-            return jsonify({'error': 'No data'})
+            return jsonify({"error": "No data"})
 
-        rows.sort(key=lambda x: x['price'])
-        cheapest = rows[0]
-        avg = round(sum(r['price'] for r in rows) / len(rows), 0)
+        rows.sort(key=lambda x: x["price"])
 
         return jsonify({
-            'mandis': rows,
-            'cheapest': cheapest,
-            'avg': avg,
-            'spread': round(rows[-1]['price'] - rows[0]['price'], 0),
-            'date': "Latest"
+            "mandis": rows,
+            "cheapest": rows[0],
+            "avg": round(sum(r["price"] for r in rows)/len(rows), 0),
+            "spread": round(rows[-1]["price"] - rows[0]["price"], 0),
+            "date": "Latest"
         })
 
     except Exception as e:
-        return jsonify({'error': str(e)})
-
+        return jsonify({"error": str(e)})
 
 # ── MAIN ───────────────────────────────────────────────────────
 
