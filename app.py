@@ -226,13 +226,26 @@ def api_debug():
 def api_signals():
     try:
         df = pd.read_json("data/today_prediction.json")
-        data = df.to_dict(orient="records")
+
+        normalized = []
+
+        for _, row in df.iterrows():
+            normalized.append({
+                "mandi": row.get("Mandi"),
+                "price": row.get("Current Price"),
+                "score": row.get("Procurement Score"),
+                "crash": row.get("Crash Risk %"),
+                "entry": row.get("Entry Signal"),
+                "ret14": row.get("Ret 14d %"),
+                "conf14": row.get("Conf 14d %"),
+            })
 
         return jsonify({
-            "data": data,
+            "data": normalized,
             "report_date": "Latest",
-            "total": len(data)
+            "total": len(normalized)
         })
+
     except Exception as e:
         return jsonify({"error": str(e), "data": []})
 
