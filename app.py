@@ -231,30 +231,30 @@ def api_signals():
 
         for _, row in df.iterrows():
             normalized.append({
-                "mandi": row.get("Mandi"),
-                "price": row.get("Current Price"),
+                "mandi": str(row.get("Mandi", "")),
+                "price": float(row.get("Current Price", 0) or 0),
 
-                "pred1": row.get("Pred 1d ₹"),
-                "pred3": row.get("Pred 3d ₹"),
-                "pred7": row.get("Pred 7d ₹"),
-                "pred14": row.get("Pred 14d ₹"),
+                "pred1": float(row.get("Pred 1d ₹", 0) or 0),
+                "pred3": float(row.get("Pred 3d ₹", 0) or 0),
+                "pred7": float(row.get("Pred 7d ₹", 0) or 0),
+                "pred14": float(row.get("Pred 14d ₹", 0) or 0),
 
-                "ret1": row.get("Ret 1d %"),
-                "ret3": row.get("Ret 3d %"),
-                "ret7": row.get("Ret 7d %"),
-                "ret14": row.get("Ret 14d %"),
+                "ret1": float(row.get("Ret 1d %", 0) or 0),
+                "ret3": float(row.get("Ret 3d %", 0) or 0),
+                "ret7": float(row.get("Ret 7d %", 0) or 0),
+                "ret14": float(row.get("Ret 14d %", 0) or 0),
 
-                "conf1": row.get("Conf 1d %"),
-                "conf3": row.get("Conf 3d %"),
-                "conf7": row.get("Conf 7d %"),
-                "conf14": row.get("Conf 14d %"),
+                "conf1": float(row.get("Conf 1d %", 0) or 0),
+                "conf3": float(row.get("Conf 3d %", 0) or 0),
+                "conf7": float(row.get("Conf 7d %", 0) or 0),
+                "conf14": float(row.get("Conf 14d %", 0) or 0),
 
-                "score": row.get("Procurement Score"),
-                "crash": row.get("Crash Risk %"),
-                "entry": row.get("Entry Signal"),
-                "zone": row.get("Price Zone"),
-                "regime": row.get("Regime"),
-                "trend": row.get("Trend Shape"),
+                "score": float(row.get("Procurement Score", 0) or 0),
+                "crash": float(row.get("Crash Risk %", 0) or 0),
+                "entry": str(row.get("Entry Signal", "")),
+                "zone": str(row.get("Price Zone", "")),
+                "regime": str(row.get("Regime", "")),
+                "trend": str(row.get("Trend Shape", "")),
             })
 
         return jsonify({
@@ -264,6 +264,7 @@ def api_signals():
         })
 
     except Exception as e:
+        print("SIGNALS ERROR:", e)
         return jsonify({"error": str(e), "data": []})
 # ── API: MANDI PRICE HISTORY ───────────────────────────────────
 
