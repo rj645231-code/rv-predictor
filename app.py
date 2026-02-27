@@ -214,9 +214,9 @@ def api_debug():
         'signals': signal_info,
         'template_folder': app.template_folder,
         'paths': {
-            'REPORTS_DIR': REPORTS_DIR,
-            'DATASET_PATH': DATASET_PATH,
-        }
+            'REPORTS_DIR': str(REPORTS_DIR),
+            'DATASET_PATH': str(DATASET_PATH),
+         }
     })
 
 
