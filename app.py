@@ -225,9 +225,7 @@ def api_debug():
 @app.route('/api/signals')
 def api_signals():
     try:
-        pred_path = DATASET_PATH.parent / "today_prediction.json"
-        df = pd.read_json(pred_path)
-
+        df = pd.read_json("data/today_prediction.json")
         data = df.to_dict(orient="records")
 
         return jsonify({
@@ -410,59 +408,76 @@ def api_seasonality():
 
 @app.route('/api/heatmap')
 def api_heatmap():
-    sdf, _ = get_signals()
-    if sdf is None:
-        return jsonify([])
+    try:
+        df = pd.read_json("data/today_prediction.json")
 
-    result = []
-    for _, row in sdf.iterrows():
-        mandi = str(row.get('Mandi', row.get('mandi', ''))).strip()
-        if not mandi: continue
-        crash  = float(row.get('Crash Risk %', 0) or 0)
-        score  = float(row.get('Procurement Score', 0) or 0)
-        price  = float(row.get('Current Price', 0) or 0)
-        entry  = str(row.get('Entry Signal', ''))
-        result.append({
-            'mandi': mandi, 'crash': crash,
-            'score': score, 'price': price, 'entry': entry,
-        })
+        result = []
 
-    result.sort(key=lambda x: x['crash'], reverse=True)
-    return jsonify(result)
+        for _, row in df.iterrows():
+            mandi = str(row.get('mandi', '')).strip()
+            crash = float(row.get('crash', 0) or 0)
+            score = float(row.get('score', 0) or 0)
+            price = float(row.get('price', 0) or 0)
+            entry = str(row.get('entry', ''))
+
+            if mandi:
+                result.append({
+                    'mandi': mandi,
+                    'crash': crash,
+                    'score': score,
+                    'price': price,
+                    'entry': entry,
+                })
+
+        result.sort(key=lambda x: x['crash'], reverse=True)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({"error": str(e)})
 
 
 # ── API: PRICE SPREAD ──────────────────────────────────────────
 
 @app.route('/api/spread')
 def api_spread():
-    sdf, rdate = get_signals()
-    if sdf is None:
-        return jsonify({'error': 'No data'})
+    try:
+        df = pd.read_json("data/today_prediction.json")
 
-    rows = []
-    for _, row in sdf.iterrows():
-        mandi = str(row.get('Mandi', row.get('mandi', ''))).strip()
-        price = float(row.get('Current Price', 0) or 0)
-        score = float(row.get('Procurement Score', 0) or 0)
-        entry = str(row.get('Entry Signal', ''))
-        crash = float(row.get('Crash Risk %', 0) or 0)
-        if mandi and price > 0:
-            rows.append({'mandi': mandi, 'price': price,
-                         'score': score, 'entry': entry, 'crash': crash})
+        rows = []
 
-    if not rows: return jsonify({'error': 'No data'})
+        for _, row in df.iterrows():
+            mandi = str(row.get('mandi', '')).strip()
+            price = float(row.get('price', 0) or 0)
+            score = float(row.get('score', 0) or 0)
+            entry = str(row.get('entry', ''))
+            crash = float(row.get('crash', 0) or 0)
 
-    rows.sort(key=lambda x: x['price'])
-    cheapest = rows[0]
-    avg      = round(sum(r['price'] for r in rows) / len(rows), 0)
+            if mandi and price > 0:
+                rows.append({
+                    'mandi': mandi,
+                    'price': price,
+                    'score': score,
+                    'entry': entry,
+                    'crash': crash
+                })
 
-    return jsonify({
-        'mandis':   rows,
-        'cheapest': cheapest,
-        'avg':      avg,
-        'spread':   round(rows[-1]['price'] - rows[0]['price'], 0),
-        'date':     rdate,
-    })
+        if not rows:
+            return jsonify({'error': 'No data'})
+
+        rows.sort(key=lambda x: x['price'])
+        cheapest = rows[0]
+        avg = round(sum(r['price'] for r in rows) / len(rows), 0)
+
+        return jsonify({
+            'mandis': rows,
+            'cheapest': cheapest,
+            'avg': avg,
+            'spread': round(rows[-1]['price'] - rows[0]['price'], 0),
+            'date': "Latest"
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 
 # ── MAIN ───────────────────────────────────────────────────────
