@@ -224,16 +224,19 @@ def api_debug():
 
 @app.route('/api/signals')
 def api_signals():
-    df, rdate = get_signals()
-    if df is None:
-        return jsonify({'error': 'No signal file found', 'data': []})
-    score_col = 'Procurement Score'
-    if score_col in df.columns:
-        df = df.sort_values(score_col, ascending=False)
-    data = [clean_signal_row(r) for _, r in df.iterrows()
-            if str(r.get('Mandi', r.get('mandi', ''))).strip()]
-    return jsonify({'data': data, 'report_date': rdate, 'total': len(data)})
+    try:
+        pred_path = DATASET_PATH.parent / "today_prediction.json"
+        df = pd.read_json(pred_path)
 
+        data = df.to_dict(orient="records")
+
+        return jsonify({
+            "data": data,
+            "report_date": "Latest",
+            "total": len(data)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e), "data": []})
 
 # ── API: MANDI PRICE HISTORY ───────────────────────────────────
 
