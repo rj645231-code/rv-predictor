@@ -222,46 +222,40 @@ def api_debug():
 
 # ── API: SIGNALS ───────────────────────────────────────────────
 
+import json
+
 @app.route('/api/signals')
 def api_signals():
     try:
-        df = pd.read_json("data/today_prediction.json")
+        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
+            raw_data = json.load(f)
 
         normalized = []
 
-        for _, row in df.iterrows():
+        for row in raw_data:
             normalized.append({
-                "mandi": str(row.get("Mandi", "")),
-                "price": float(row.get("Current Price", 0) or 0),
-
-                # Predictions
-                "pred1": float(row.get("Pred 1d ₹", 0) or 0),
-                "pred3": float(row.get("Pred 3d ₹", 0) or 0),
-                "pred7": float(row.get("Pred 7d ₹", 0) or 0),
-                "pred14": float(row.get("Pred 14d ₹", 0) or 0),
-
-                # Returns
-                "ret1": float(row.get("Ret 1d %", 0) or 0),
-                "ret3": float(row.get("Ret 3d %", 0) or 0),
-                "ret7": float(row.get("Ret 7d %", 0) or 0),
-                "ret14": float(row.get("Ret 14d %", 0) or 0),
-
-                # Confidence
-                "conf1": float(row.get("Conf 1d %", 0) or 0),
-                "conf3": float(row.get("Conf 3d %", 0) or 0),
-                "conf7": float(row.get("Conf 7d %", 0) or 0),
-                "conf14": float(row.get("Conf 14d %", 0) or 0),
-
-                # Core Signals
-                "score": float(row.get("Procurement Score", 0) or 0),
-                "crash": float(row.get("Crash Risk %", 0) or 0),
-                "entry": str(row.get("Entry Signal", "")),
-                "planning": str(row.get("Planning Signal", "")),
-                "arrival_pressure": float(row.get("Arrival Pressure", 0) or 0),
-
-                "zone": str(row.get("Price Zone", "")),
-                "regime": str(row.get("Regime", "")),
-                "trend": str(row.get("Trend Shape", "")),
+                "mandi": row.get("Mandi", ""),
+                "price": row.get("Current Price", 0),
+                "pred1": row.get("Pred 1d ₹", 0),
+                "pred3": row.get("Pred 3d ₹", 0),
+                "pred7": row.get("Pred 7d ₹", 0),
+                "pred14": row.get("Pred 14d ₹", 0),
+                "ret1": row.get("Ret 1d %", 0),
+                "ret3": row.get("Ret 3d %", 0),
+                "ret7": row.get("Ret 7d %", 0),
+                "ret14": row.get("Ret 14d %", 0),
+                "conf1": row.get("Conf 1d %", 0),
+                "conf3": row.get("Conf 3d %", 0),
+                "conf7": row.get("Conf 7d %", 0),
+                "conf14": row.get("Conf 14d %", 0),
+                "score": row.get("Procurement Score", 0),
+                "crash": row.get("Crash Risk %", 0),
+                "entry": row.get("Entry Signal", ""),
+                "planning": row.get("Planning Signal", ""),
+                "arrival_pressure": row.get("Arrival Pressure", 0),
+                "zone": row.get("Price Zone", ""),
+                "regime": row.get("Regime", ""),
+                "trend": row.get("Trend Shape", ""),
             })
 
         return jsonify({
