@@ -234,24 +234,31 @@ def api_signals():
                 "mandi": str(row.get("Mandi", "")),
                 "price": float(row.get("Current Price", 0) or 0),
 
+                # Predictions
                 "pred1": float(row.get("Pred 1d ₹", 0) or 0),
                 "pred3": float(row.get("Pred 3d ₹", 0) or 0),
                 "pred7": float(row.get("Pred 7d ₹", 0) or 0),
                 "pred14": float(row.get("Pred 14d ₹", 0) or 0),
 
+                # Returns
                 "ret1": float(row.get("Ret 1d %", 0) or 0),
                 "ret3": float(row.get("Ret 3d %", 0) or 0),
                 "ret7": float(row.get("Ret 7d %", 0) or 0),
                 "ret14": float(row.get("Ret 14d %", 0) or 0),
 
+                # Confidence
                 "conf1": float(row.get("Conf 1d %", 0) or 0),
                 "conf3": float(row.get("Conf 3d %", 0) or 0),
                 "conf7": float(row.get("Conf 7d %", 0) or 0),
                 "conf14": float(row.get("Conf 14d %", 0) or 0),
 
+                # Core Signals
                 "score": float(row.get("Procurement Score", 0) or 0),
                 "crash": float(row.get("Crash Risk %", 0) or 0),
                 "entry": str(row.get("Entry Signal", "")),
+                "planning": str(row.get("Planning Signal", "")),
+                "arrival_pressure": float(row.get("Arrival Pressure", 0) or 0),
+
                 "zone": str(row.get("Price Zone", "")),
                 "regime": str(row.get("Regime", "")),
                 "trend": str(row.get("Trend Shape", "")),
