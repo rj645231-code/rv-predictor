@@ -251,7 +251,7 @@ def api_signals():
                 "score": row.get("Procurement Score", 0),
                 "crash": row.get("Crash Risk %", 0),
                 "entry": row.get("Entry Signal", ""),
-                "planning_signal": row.get("Planning Signal", ""),
+                "plan": row.get("Planning Signal", ""),
                 "arrival": row.get("Arrival Pressure", 0),
                 "zone": row.get("Price Zone", ""),
                 "regime": row.get("Regime", ""),
@@ -588,26 +588,55 @@ def start_ngrok_tunnel(port):
 
 
 
-# ── MAIN ───────────────────────────────────────────────────────
+if __name__ == '__main__':
+    local_ip = get_local_ip()
+    PORT = 5000
+    W = 62
 
-def get_local_ip():
-    import socket
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return "127.0.0.1"
+    print()
+    print("=" * W)
+    print("  🌾  RV PREDICTOR — STARTING")
+    print("=" * W)
+    print()
+    print(f"  💻  This laptop only   →  http://localhost:{PORT}")
+    print()
+    print(f"  📱  Same WiFi network  →  http://{local_ip}:{PORT}")
+    print(f"      (phone must be on same WiFi as this laptop)")
+    print()
 
-def try_copy_to_clipboard(text):
-    try:
-        import subprocess
-        subprocess.run(['clip'], input=text.encode('utf-8'), check=True)
-        return True
-    except Exception:
-        return False
+    if ENABLE_NGROK:
+        print("  🌐  Starting ngrok tunnel...")
+        public_url, ngrok_err = start_ngrok_tunnel(PORT)
+        if public_url:
+            print()
+            print("  " + "─" * (W - 4))
+            print("  🚀  PUBLIC URL — share this with ANYONE:")
+            print()
+            print(f"      {public_url}")
+            print()
+            print("  " + "─" * (W - 4))
+            copied = try_copy_to_clipboard(public_url)
+            if copied:
+                print("  ✅  URL copied to clipboard!")
+            print("  ⚠️  URL changes every restart (free plan)")
+            print()
+        elif ngrok_err == "no_token":
+            print()
+            print("  ❌  ngrok needs authtoken setup.")
+            print("  Run: ngrok config add-authtoken YOUR_TOKEN")
+            print()
+        else:
+            print("  ❌  ngrok failed.")
+            print()
+    else:
+        print("  💡  Set ENABLE_NGROK = True to share publicly")
+        print()
 
-if __name__ == "__main__":
-    app.run()
+    print(f"  Pages:  /   /mandi   /compare   /history")
+    print(f"  Debug:  http://localhost:{PORT}/api/debug")
+    print()
+    print("  Press Ctrl+C to stop")
+    print("=" * W)
+    print()
+
+    app.run(host='0.0.0.0', port=PORT, debug=False)
