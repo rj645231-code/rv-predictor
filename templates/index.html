@@ -92,7 +92,7 @@ async function init(){
 function render(sigs,spread,hm){
   const buy=sigs.filter(r=>r.entry&&r.entry.includes('BUY TODAY')).length;
   const wait=sigs.filter(r=>r.entry&&r.entry.includes('WAIT')).length;
-  const avoid=sigs.filter(r=>r.plan&&r.plan.includes('AVOID')).length;
+  const avoid=sigs.filter(r=>(r.plan&&r.plan.includes('AVOID'))||(r.entry&&r.entry.includes('AVOID'))).length;
   document.getElementById('root').innerHTML=`
     <div class="kpi an">
       <div class="kb"><div class="kl">Buy Today</div><div class="kv pos">${buy}</div><div class="ks">mandis</div></div>
