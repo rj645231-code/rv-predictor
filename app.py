@@ -541,8 +541,9 @@ def api_news():
     global _news_cache, _news_cache_ts
     now = datetime.now().timestamp()
     
-    # Return cached news if fresh
-    if _news_cache and (now - _news_cache_ts) < NEWS_CACHE_SECONDS:
+    # Return cached news if fresh (unless ?refresh=1 is passed)
+    force_refresh = request.args.get('refresh', '0') == '1'
+    if _news_cache and not force_refresh and (now - _news_cache_ts) < NEWS_CACHE_SECONDS:
         return jsonify({'news': _news_cache, 'cached': True})
     
     try:

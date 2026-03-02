@@ -45,7 +45,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--txt);min-height:100v
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.2}}
 
 /* BOTTOM NAV */
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:500px;z-index:200;background:rgba(6,10,18,0.98);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--br);display:grid;grid-template-columns:repeat(4,1fr);padding:8px 0 max(8px,env(safe-area-inset-bottom))}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:500px;z-index:200;background:rgba(6,10,18,0.98);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-top:1px solid var(--br);display:grid;grid-template-columns:repeat(5,1fr);padding:8px 0 max(8px,env(safe-area-inset-bottom))}
 .nb{display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 2px;text-decoration:none;color:var(--t3);font-family:var(--fn);font-size:9px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;transition:color 0.2s}
 .nb.on,.nb:hover{color:var(--amber)}
 .ni{font-size:20px;line-height:1}
@@ -124,6 +124,7 @@ body{font-family:var(--fn);background:var(--bg);color:var(--txt);min-height:100v
   <a href="/mandi"   class="nb {% if active=='mandi'   %}on{% endif %}"><span class="ni">🏪</span>Mandi</a>
   <a href="/compare" class="nb {% if active=='compare' %}on{% endif %}"><span class="ni">⚖️</span>Compare</a>
   <a href="/history" class="nb {% if active=='history' %}on{% endif %}"><span class="ni">📅</span>History</a>
+  <a href="/news"    class="nb {% if active=='news'    %}on{% endif %}"><span class="ni">📰</span>News</a>
 </nav>
 
 <script>

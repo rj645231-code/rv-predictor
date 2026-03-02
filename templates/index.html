@@ -97,28 +97,7 @@
 .bp-note{font-size:10px;color:var(--t2);font-style:italic;max-width:160px}
 .bp-empty{padding:30px;text-align:center;color:var(--t2);font-size:12px}
 
-/* ══ NEWS SECTION ══ */
-.news-wrap{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
-.news-loading{padding:30px;text-align:center;color:var(--t2);font-size:12px;display:flex;align-items:center;justify-content:center;gap:10px}
-.news-card{border-bottom:1px solid var(--br);padding:14px 16px;transition:background 0.15s}
-.news-card:last-child{border-bottom:none}
-.news-card:hover{background:rgba(255,255,255,0.02)}
-.news-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
-.news-title{font-size:13px;font-weight:800;line-height:1.35;flex:1}
-.news-tag{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.5px}
-.tag-bull{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)}
-.tag-bear{background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);color:var(--red)}
-.tag-neut{background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.2);color:var(--t2)}
-.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:7px}
-.news-src{font-size:9px;font-weight:700;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase}
-.news-date{font-size:9px;color:var(--t3)}
-.news-cat{font-size:9px;color:var(--t3);background:var(--c2);border-radius:10px;padding:1px 7px}
-.news-summary{font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:8px}
-.news-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--amber);font-weight:700;text-decoration:none}
-.news-link:hover{text-decoration:underline}
-.news-refresh{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--br);background:var(--c2)}
-.news-refresh-btn{background:var(--amber);color:#000;border:none;border-radius:var(--rs);padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fn)}
-.news-ts{font-size:9px;color:var(--t3)}
+/* News moved to /news page */
 </style>
 {% endblock %}
 
@@ -128,7 +107,7 @@
 
 {% block scripts %}
 <script>
-let SIG=[];let OC=null;let CH={};let BP_DATA=[];let NEWS_DATA=[];
+let SIG=[];let OC=null;let CH={};let BP_DATA=[];
 
 async function init(){
   try{
@@ -141,8 +120,6 @@ async function init(){
     SIG=sr.data||[];
     BP_DATA=Array.isArray(bpr)?bpr:[];
     render(SIG,spr,hmr);
-    // Load news async after main content
-    loadNews();
   }catch(e){
     document.getElementById('root').innerHTML='<div class="er">Could not load data. Is Flask running?</div>';
   }
@@ -164,6 +141,13 @@ function render(sigs,spread,hm){
     ${rspread(spread)}
     <div class="sec">⚠️ Crash Risk Alert — Danger Mandis Only</div>
     ${rheatmap(hm)}
+    <div class="sec">📰 Market News</div>
+    <a href="/news" style="display:block;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.2);border-radius:var(--r);padding:18px;text-decoration:none;text-align:center;margin-bottom:10px">
+      <div style="font-size:24px;margin-bottom:6px">📰</div>
+      <div style="font-size:13px;font-weight:800;color:var(--txt)">Mustard Market News</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">Bullish · Bearish · Neutral — with price impact analysis</div>
+      <div style="font-size:10px;color:var(--blue);margin-top:6px;font-weight:700">Open News Page →</div>
+    </a>
     <div class="sec">🏢 Big Player Buying Activity</div>
     ${rbigplayer(BP_DATA)}
     <div class="sec">📰 Mustard Market News</div>
@@ -278,66 +262,7 @@ function filterbp(){
   if(tbody) tbody.innerHTML=bprows(data,avgMkt);
 }
 
-/* ══ NEWS SECTION ══ */
-async function loadNews(refresh=false){
-  const el=document.getElementById('news-root');
-  if(!el)return;
-  if(refresh){
-    el.innerHTML='<div class="news-loading"><div class="sp" style="width:18px;height:18px;border:2px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Fetching fresh news via AI...</div>';
-  }
-  try{
-    const res=await fetch('/api/news').then(r=>r.json());
-    NEWS_DATA=res.news||[];
-    renderNews(NEWS_DATA);
-  }catch(e){
-    el.innerHTML='<div class="news-loading" style="flex-direction:column;gap:6px">⚠️ News unavailable<br><small style="color:var(--t3)">Add /api/news endpoint or check connection</small></div>';
-  }
-}
-
-function renderNews(news){
-  const el=document.getElementById('news-root');
-  if(!el)return;
-  if(!news.length){
-    el.innerHTML='<div class="news-loading">No news found.</div>';
-    return;
-  }
-  const ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-  el.innerHTML=
-    news.map(n=>newscard(n)).join('')+
-    `<div class="news-refresh">
-      <div class="news-ts">Updated at ${ts}</div>
-      <button class="news-refresh-btn" onclick="loadNews(true)">🔄 Refresh</button>
-    </div>`;
-}
-
-function newscard(n){
-  const tag=n.sentiment==='bullish'
-    ?'<span class="news-tag tag-bull">▲ Bullish</span>'
-    :n.sentiment==='bearish'
-    ?'<span class="news-tag tag-bear">▼ Bearish</span>'
-    :'<span class="news-tag tag-neut">◆ Neutral</span>';
-  const catMap={'policy':'📋 Policy','weather':'🌦 Weather','export':'🚢 Export/Import','price':'💰 Prices','edible_oil':'🫙 Edible Oil','general':'📰 General'};
-  const catLabel=catMap[n.category]||'📰 General';
-  const impact=n.sentiment==='bullish'
-    ?`<div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:700">📈 Impact: Could push mustard prices UP</div>`
-    :n.sentiment==='bearish'
-    ?`<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:700">📉 Impact: Could push mustard prices DOWN</div>`
-    :'';
-  return`<div class="news-card">
-    <div class="news-top">
-      <div class="news-title">${n.title}</div>
-      ${tag}
-    </div>
-    <div class="news-meta">
-      <span class="news-src">${n.source||'Market News'}</span>
-      <span class="news-date">${n.date||''}</span>
-      <span class="news-cat">${catLabel}</span>
-    </div>
-    <div class="news-summary">${n.summary}</div>
-    ${impact}
-    ${n.url?`<a class="news-link" href="${n.url}" target="_blank" rel="noopener">Read full story →</a>`:''}
-  </div>`;
-}
+/* News JS moved to /news page */
 
 /* ══ EXISTING FUNCTIONS (unchanged) ══ */
 function mcard(r,i){
