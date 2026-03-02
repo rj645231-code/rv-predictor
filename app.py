@@ -25,6 +25,7 @@ REPORTS_DIR  = BASE_DIR / "data"
 DATASET_PATH = BASE_DIR / "data" / "historical_data.csv"
 ACC_FILE     = BASE_DIR / "data" / "accuracy_tracker.csv"
 
+PORT         = int(os.environ.get('PORT', 5000))  # Render sets PORT automatically
 ENABLE_NGROK = False   # IMPORTANT
 NGROK_TOKEN  = ""   # leave "" to auto-read from ngrok config file
 ANTHROPIC_API_KEY = ""  # Set your key here OR set env var ANTHROPIC_API_KEY
@@ -179,6 +180,10 @@ def compare():    return render_template('compare.html')
 
 @app.route('/history')
 def history():    return render_template('history.html')
+
+@app.route('/news')
+def news():
+    return render_template('news.html')
 
 
 # ── DEBUG: visit /api/debug to see what's loaded ───────────────
@@ -758,7 +763,6 @@ def start_ngrok_tunnel(port):
 
 if __name__ == '__main__':
     local_ip = get_local_ip()
-    PORT = 5000
     W = 62
 
     print()
@@ -807,4 +811,4 @@ if __name__ == '__main__':
     print("=" * W)
     print()
 
-    app.run(host='0.0.0.0', port=PORT, debug=False)
+    app.run(host='0.0.0.0', port=PORT, debug=False, use_reloader=False)
