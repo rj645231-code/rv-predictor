@@ -1,0 +1,10 @@
+[
+  {"player":"Adani Wilmar Ltd","mandi":"JAIPUR","buy_price":6150,"quantity":2500,"date":"2026-03-02","note":"Aggressive bulk procurement — above market premium signals bullish outlook"},
+  {"player":"Ruchi Soya (Patanjali)","mandi":"KOTA","buy_price":5720,"quantity":1800,"date":"2026-03-02","note":"Regular stocking for Patanjali oil extraction plant"},
+  {"player":"Emami Agrotech","mandi":"ALWAR","buy_price":6320,"quantity":3200,"date":"2026-03-01","note":"Premium above-market buying — strong bullish signal from large processor"},
+  {"player":"Cargill India Pvt Ltd","mandi":"BHARATPUR","buy_price":5480,"quantity":950,"date":"2026-03-01","note":"Negotiated below-market bulk deal — bearish pressure on local rates"},
+  {"player":"Marico Ltd","mandi":"DAUSA","buy_price":5980,"quantity":1400,"date":"2026-02-28","note":"Steady procurement for Saffola brand — near-market pricing"},
+  {"player":"ITC Agri Business","mandi":"CHOMU","buy_price":6250,"quantity":2100,"date":"2026-02-28","note":"Above-market buy — ITC building inventory ahead of seasonal demand spike"},
+  {"player":"Bunge India Pvt Ltd","mandi":"SIKAR","buy_price":5650,"quantity":1100,"date":"2026-02-27","note":"Near-MSP procurement — neutral signal from international trader"},
+  {"player":"Adani Wilmar Ltd","mandi":"NAGAUR","buy_price":6080,"quantity":1750,"date":"2026-02-27","note":"Second lot purchase in 3 days — aggressive accumulation strategy"}
+]

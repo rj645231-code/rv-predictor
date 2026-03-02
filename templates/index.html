@@ -3,11 +3,13 @@
 {% block title %}RV Predictor — Home{% endblock %}
 {% block xs %}
 <style>
+/* ── KPI CARDS ── */
 .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
 .kb{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:14px 10px;text-align:center}
 .kl{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);margin-bottom:6px}
 .kv{font-family:var(--fm);font-size:26px;font-weight:700;line-height:1}
 .ks{font-size:10px;color:var(--t2);margin-top:3px}
+/* ── MANDI CARDS ── */
 .mc{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);margin-bottom:10px;cursor:pointer;transition:border-color 0.2s}
 .mc.on{border-color:var(--amber)}
 .mt{display:flex;align-items:center;gap:11px;padding:14px 16px}
@@ -26,6 +28,7 @@
 .sn{font-family:var(--fm);font-size:11px;font-weight:700;color:var(--amber);min-width:24px;text-align:right}
 .det{display:none;border-top:1px solid var(--br);padding:14px 16px}
 .det.open{display:block;animation:up 0.22s ease}
+/* ── DETAIL CARDS ── */
 .h4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
 .hb{background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);padding:10px 6px;text-align:center}
 .hb.hi{border-color:var(--amber);background:rgba(245,158,11,0.06)}
@@ -47,7 +50,7 @@
 .gc{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .gn{font-family:var(--fm);font-size:12px;font-weight:700}
 .gd{font-size:9px;color:var(--t2)}
-/* SPREAD — fixed, no rotation */
+/* ── SPREAD ── */
 .sp-wrap{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
 .sp-hdr{display:flex;justify-content:space-between;align-items:center;padding:14px 16px 12px;border-bottom:1px solid var(--br)}
 .sp-item{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--br)}
@@ -57,7 +60,7 @@
 .sp-fill{height:100%;border-radius:3px}
 .sp-price{font-family:var(--fm);font-size:12px;font-weight:700;min-width:62px;text-align:right;flex-shrink:0}
 .best-tag{display:inline-block;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:1px 7px;font-size:9px;font-weight:700;color:var(--green);font-family:var(--fm);margin-left:4px;vertical-align:middle}
-/* HEATMAP only >50 */
+/* ── HEATMAP ── */
 .hm-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
 .hmc{border-radius:var(--rs);padding:14px;border:1px solid}
 .hmn{font-size:13px;font-weight:800;margin-bottom:4px}
@@ -66,24 +69,80 @@
 .hmw{font-size:11px;font-weight:700}
 .hmpr{font-size:11px;color:rgba(255,255,255,0.45);margin-top:3px}
 .no-crash{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:var(--r);padding:22px;text-align:center}
+
+/* ══ BIG PLAYER SECTION ══ */
+.bp-wrap{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.bp-insight{background:rgba(245,158,11,0.07);border-bottom:1px solid rgba(245,158,11,0.15);padding:12px 16px;display:flex;gap:10px;align-items:flex-start}
+.bp-insight-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.bp-insight-text{font-size:11px;color:var(--t2);line-height:1.6}
+.bp-insight-text b{color:var(--amber);font-weight:700}
+.bp-filters{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--br);flex-wrap:wrap}
+.bp-fsel{padding:6px 10px;background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);color:var(--txt);font-family:var(--fn);font-size:11px;font-weight:600;outline:none;cursor:pointer;appearance:none}
+.bp-fsel:focus{border-color:var(--amber)}
+.bp-table-wrap{overflow-x:auto}
+.bp-table{width:100%;border-collapse:collapse;font-size:11px}
+.bp-table th{padding:8px 12px;text-align:left;font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--t2);border-bottom:1px solid var(--br);white-space:nowrap;font-weight:600}
+.bp-table td{padding:10px 12px;border-bottom:1px solid var(--br);vertical-align:middle}
+.bp-table tr:last-child td{border-bottom:none}
+.bp-table tr:hover td{background:rgba(255,255,255,0.02)}
+.bp-player{font-weight:800;font-size:12px}
+.bp-mandi{font-size:10px;color:var(--t2);margin-top:2px}
+.bp-price{font-family:var(--fm);font-weight:700;font-size:13px}
+.bp-qty{font-family:var(--fm);font-size:12px;color:var(--t2)}
+.bp-date{font-size:10px;color:var(--t3)}
+.bp-diff{font-family:var(--fm);font-size:11px;font-weight:700}
+.bp-signal{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.5px;white-space:nowrap}
+.bp-bull{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)}
+.bp-bear{background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);color:var(--red)}
+.bp-note{font-size:10px;color:var(--t2);font-style:italic;max-width:160px}
+.bp-empty{padding:30px;text-align:center;color:var(--t2);font-size:12px}
+
+/* ══ NEWS SECTION ══ */
+.news-wrap{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.news-loading{padding:30px;text-align:center;color:var(--t2);font-size:12px;display:flex;align-items:center;justify-content:center;gap:10px}
+.news-card{border-bottom:1px solid var(--br);padding:14px 16px;transition:background 0.15s}
+.news-card:last-child{border-bottom:none}
+.news-card:hover{background:rgba(255,255,255,0.02)}
+.news-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.news-title{font-size:13px;font-weight:800;line-height:1.35;flex:1}
+.news-tag{flex-shrink:0;display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.5px}
+.tag-bull{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)}
+.tag-bear{background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);color:var(--red)}
+.tag-neut{background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.2);color:var(--t2)}
+.news-meta{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.news-src{font-size:9px;font-weight:700;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase}
+.news-date{font-size:9px;color:var(--t3)}
+.news-cat{font-size:9px;color:var(--t3);background:var(--c2);border-radius:10px;padding:1px 7px}
+.news-summary{font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:8px}
+.news-link{display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--amber);font-weight:700;text-decoration:none}
+.news-link:hover{text-decoration:underline}
+.news-refresh{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--br);background:var(--c2)}
+.news-refresh-btn{background:var(--amber);color:#000;border:none;border-radius:var(--rs);padding:6px 14px;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fn)}
+.news-ts{font-size:9px;color:var(--t3)}
 </style>
 {% endblock %}
+
 {% block content %}
 <div id="root"><div class="ld"><div class="sp" style="width:28px;height:28px;border:3px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Loading...</div></div>
 {% endblock %}
+
 {% block scripts %}
 <script>
-let SIG=[];let OC=null;let CH={};
+let SIG=[];let OC=null;let CH={};let BP_DATA=[];let NEWS_DATA=[];
 
 async function init(){
   try{
-    const[sr,spr,hmr]=await Promise.all([
+    const[sr,spr,hmr,bpr]=await Promise.all([
       fetch('/api/signals').then(r=>r.json()),
       fetch('/api/spread').then(r=>r.json()),
       fetch('/api/heatmap').then(r=>r.json()),
+      fetch('/api/bigplayers').then(r=>r.json()).catch(()=>[]),
     ]);
     SIG=sr.data||[];
+    BP_DATA=Array.isArray(bpr)?bpr:[];
     render(SIG,spr,hmr);
+    // Load news async after main content
+    loadNews();
   }catch(e){
     document.getElementById('root').innerHTML='<div class="er">Could not load data. Is Flask running?</div>';
   }
@@ -104,9 +163,183 @@ function render(sigs,spread,hm){
     <div class="sec">Price Spread — Cheapest to Costliest</div>
     ${rspread(spread)}
     <div class="sec">⚠️ Crash Risk Alert — Danger Mandis Only</div>
-    ${rheatmap(hm)}`;
+    ${rheatmap(hm)}
+    <div class="sec">🏢 Big Player Buying Activity</div>
+    ${rbigplayer(BP_DATA)}
+    <div class="sec">📰 Mustard Market News</div>
+    <div id="news-root" class="news-wrap">
+      <div class="news-loading">
+        <div class="sp" style="width:18px;height:18px;border:2px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>
+        Fetching latest market news...
+      </div>
+    </div>`;
 }
 
+/* ══ BIG PLAYER SECTION ══ */
+function rbigplayer(data){
+  const avgMkt=SIG.length?SIG.reduce((s,r)=>s+Number(r.price||0),0)/SIG.length:5800;
+  const mandis=[...new Set(data.map(r=>r.mandi))].sort();
+  const dates=[...new Set(data.map(r=>r.date))].sort().reverse();
+
+  return`<div class="bp-wrap an">
+    <div class="bp-insight">
+      <div class="bp-insight-icon">💡</div>
+      <div class="bp-insight-text">
+        <b>What Big Player Buying Means:</b><br>
+        When large companies buy <b>above market price</b> → they expect prices to rise (<span style="color:var(--green)">Bullish</span>).
+        When they buy <b>below market</b> → bearish pressure on rates (<span style="color:var(--red)">Bearish</span>).
+        Heavy bulk buying = reduced supply at mandis = prices tend to rise in 7–14 days.
+      </div>
+    </div>
+    <div class="bp-filters">
+      <select class="bp-fsel" id="bp-date" onchange="filterbp()">
+        <option value="">All Dates</option>
+        ${dates.map(d=>`<option value="${d}">${d}</option>`).join('')}
+      </select>
+      <select class="bp-fsel" id="bp-mandi" onchange="filterbp()">
+        <option value="">All Mandis</option>
+        ${mandis.map(m=>`<option value="${m}">${m}</option>`).join('')}
+      </select>
+      <select class="bp-fsel" id="bp-signal" onchange="filterbp()">
+        <option value="">All Signals</option>
+        <option value="bull">🟢 Bullish Only</option>
+        <option value="bear">🔴 Bearish Only</option>
+      </select>
+      <select class="bp-fsel" id="bp-price" onchange="filterbp()">
+        <option value="">All Prices</option>
+        <option value="0-5500">Below ₹5,500</option>
+        <option value="5500-5800">₹5,500 – ₹5,800</option>
+        <option value="5800-6000">₹5,800 – ₹6,000</option>
+        <option value="6000-99999">Above ₹6,000</option>
+      </select>
+    </div>
+    <div class="bp-table-wrap">
+      <table class="bp-table" id="bp-table">
+        <thead>
+          <tr>
+            <th>Company / Player</th>
+            <th>Buy Price</th>
+            <th>vs Market</th>
+            <th>Signal</th>
+            <th>Qty (qtl)</th>
+            <th>Date</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody id="bp-body">
+          ${bprows(data, avgMkt)}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function bprows(data, avgMkt){
+  if(!data.length) return`<tr><td colspan="7" class="bp-empty">No big player data available.<br><small style="color:var(--t3)">Add entries to data/big_players.json</small></td></tr>`;
+  return data.map(r=>{
+    const mkt=avgMkt||5800;
+    const diff=r.buy_price-mkt;
+    const pct=(diff/mkt*100).toFixed(1);
+    const bull=diff>=0;
+    const diffStr=(diff>=0?'+':'')+Math.round(diff);
+    const pctStr=(diff>=0?'+':'')+pct+'%';
+    return`<tr>
+      <td><div class="bp-player">${r.player}</div><div class="bp-mandi">📍 ${r.mandi}</div></td>
+      <td><div class="bp-price ${bull?'pos':'neg'}">₹${Number(r.buy_price).toLocaleString('en-IN')}</div></td>
+      <td><div class="bp-diff ${bull?'pos':'neg'}">${diffStr} (${pctStr})</div></td>
+      <td><span class="bp-signal ${bull?'bp-bull':'bp-bear'}">${bull?'▲ BULLISH':'▼ BEARISH'}</span></td>
+      <td><div class="bp-qty">${Number(r.quantity).toLocaleString('en-IN')} q</div></td>
+      <td><div class="bp-date">${r.date}</div></td>
+      <td><div class="bp-note">${r.note||'—'}</div></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterbp(){
+  const avgMkt=SIG.length?SIG.reduce((s,r)=>s+Number(r.price||0),0)/SIG.length:5800;
+  const fdate=document.getElementById('bp-date')?.value||'';
+  const fmandi=document.getElementById('bp-mandi')?.value||'';
+  const fsig=document.getElementById('bp-signal')?.value||'';
+  const fpr=document.getElementById('bp-price')?.value||'';
+  let data=BP_DATA;
+  if(fdate) data=data.filter(r=>r.date===fdate);
+  if(fmandi) data=data.filter(r=>r.mandi===fmandi);
+  if(fsig){
+    data=data.filter(r=>{
+      const bull=(r.buy_price-avgMkt)>=0;
+      return fsig==='bull'?bull:!bull;
+    });
+  }
+  if(fpr){
+    const [lo,hi]=fpr.split('-').map(Number);
+    data=data.filter(r=>r.buy_price>=lo&&r.buy_price<=hi);
+  }
+  const tbody=document.getElementById('bp-body');
+  if(tbody) tbody.innerHTML=bprows(data,avgMkt);
+}
+
+/* ══ NEWS SECTION ══ */
+async function loadNews(refresh=false){
+  const el=document.getElementById('news-root');
+  if(!el)return;
+  if(refresh){
+    el.innerHTML='<div class="news-loading"><div class="sp" style="width:18px;height:18px;border:2px solid #1c2b40;border-top-color:#f59e0b;border-radius:50%;animation:spin 0.7s linear infinite"></div>Fetching fresh news via AI...</div>';
+  }
+  try{
+    const res=await fetch('/api/news').then(r=>r.json());
+    NEWS_DATA=res.news||[];
+    renderNews(NEWS_DATA);
+  }catch(e){
+    el.innerHTML='<div class="news-loading" style="flex-direction:column;gap:6px">⚠️ News unavailable<br><small style="color:var(--t3)">Add /api/news endpoint or check connection</small></div>';
+  }
+}
+
+function renderNews(news){
+  const el=document.getElementById('news-root');
+  if(!el)return;
+  if(!news.length){
+    el.innerHTML='<div class="news-loading">No news found.</div>';
+    return;
+  }
+  const ts=new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  el.innerHTML=
+    news.map(n=>newscard(n)).join('')+
+    `<div class="news-refresh">
+      <div class="news-ts">Updated at ${ts}</div>
+      <button class="news-refresh-btn" onclick="loadNews(true)">🔄 Refresh</button>
+    </div>`;
+}
+
+function newscard(n){
+  const tag=n.sentiment==='bullish'
+    ?'<span class="news-tag tag-bull">▲ Bullish</span>'
+    :n.sentiment==='bearish'
+    ?'<span class="news-tag tag-bear">▼ Bearish</span>'
+    :'<span class="news-tag tag-neut">◆ Neutral</span>';
+  const catMap={'policy':'📋 Policy','weather':'🌦 Weather','export':'🚢 Export/Import','price':'💰 Prices','edible_oil':'🫙 Edible Oil','general':'📰 General'};
+  const catLabel=catMap[n.category]||'📰 General';
+  const impact=n.sentiment==='bullish'
+    ?`<div style="font-size:10px;color:var(--green);margin-top:4px;font-weight:700">📈 Impact: Could push mustard prices UP</div>`
+    :n.sentiment==='bearish'
+    ?`<div style="font-size:10px;color:var(--red);margin-top:4px;font-weight:700">📉 Impact: Could push mustard prices DOWN</div>`
+    :'';
+  return`<div class="news-card">
+    <div class="news-top">
+      <div class="news-title">${n.title}</div>
+      ${tag}
+    </div>
+    <div class="news-meta">
+      <span class="news-src">${n.source||'Market News'}</span>
+      <span class="news-date">${n.date||''}</span>
+      <span class="news-cat">${catLabel}</span>
+    </div>
+    <div class="news-summary">${n.summary}</div>
+    ${impact}
+    ${n.url?`<a class="news-link" href="${n.url}" target="_blank" rel="noopener">Read full story →</a>`:''}
+  </div>`;
+}
+
+/* ══ EXISTING FUNCTIONS (unchanged) ══ */
 function mcard(r,i){
   const rc=['r1','r2','r3','r0'][Math.min(i,3)];
   const cl=pc(r.entry);const si=ss(r.entry);
@@ -124,10 +357,7 @@ function mcard(r,i){
 
 async function tog(id,em,idx){
   const card=document.getElementById(id);const det=document.getElementById('d'+id);
-  if(card.classList.contains('on')){
-    card.classList.remove('on');det.classList.remove('open');
-    if(CH[id]){CH[id].destroy();delete CH[id];}OC=null;return;
-  }
+  if(card.classList.contains('on')){card.classList.remove('on');det.classList.remove('open');if(CH[id]){CH[id].destroy();delete CH[id];}OC=null;return;}
   if(OC){document.getElementById(OC)?.classList.remove('on');document.getElementById('d'+OC)?.classList.remove('open');if(CH[OC]){CH[OC].destroy();delete CH[OC];}}
   OC=id;card.classList.add('on');
   det.innerHTML='<div style="text-align:center;color:var(--t2);padding:12px;font-size:12px">Loading chart...</div>';
@@ -190,20 +420,14 @@ function mchart(hist,r,cid,cardId){
   });
 }
 
-/* ── SPREAD: fixed horizontal bars, sorted cheapest→costliest ── */
 function rspread(s){
   if(!s||s.error)return`<div class="er">${s?.error||'No data'}</div>`;
   const ms=s.mandis||[];
   if(!ms.length)return'<div class="er">No spread data available</div>';
-  // ms is already sorted cheapest first from API
-  const minP=ms[0].price;
-  const maxP=ms[ms.length-1].price;
-  const range=maxP-minP||1;
-
+  const minP=ms[0].price;const maxP=ms[ms.length-1].price;const range=maxP-minP||1;
   const rows=ms.map((r,i)=>{
     const pct=Math.max(Math.round((r.price-minP)/range*100),1);
-    const isMin=i===0;
-    const isMax=i===ms.length-1;
+    const isMin=i===0;const isMax=i===ms.length-1;
     const col=isMin?'var(--green)':isMax?'var(--red)':pct>70?'#f97316':'var(--amber)';
     return`<div class="sp-item">
       <div class="sp-name">${r.mandi}${isMin?'<span class="best-tag">BEST</span>':''}</div>
@@ -211,31 +435,19 @@ function rspread(s){
       <div class="sp-price ${isMin?'pos':isMax?'neg':'acc'}">${fp(r.price)}</div>
     </div>`;
   }).join('');
-
   return`<div class="sp-wrap">
     <div class="sp-hdr">
-      <div>
-        <div style="font-size:10px;color:var(--t2);margin-bottom:3px">Cheapest today — Buy here</div>
-        <div style="font-size:17px;font-weight:800;color:var(--green)">${s.cheapest?.mandi||ms[0]?.mandi||'—'}</div>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:10px;color:var(--t2);margin-bottom:3px">Total price gap</div>
-        <div style="font-family:var(--fm);font-size:22px;font-weight:700;color:var(--red)">₹${s.spread||0}</div>
-      </div>
+      <div><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Cheapest today — Buy here</div><div style="font-size:17px;font-weight:800;color:var(--green)">${s.cheapest?.mandi||ms[0]?.mandi||'—'}</div></div>
+      <div style="text-align:right"><div style="font-size:10px;color:var(--t2);margin-bottom:3px">Total price gap</div><div style="font-family:var(--fm);font-size:22px;font-weight:700;color:var(--red)">₹${s.spread||0}</div></div>
     </div>
     ${rows}
   </div>`;
 }
 
-/* ── HEATMAP: ONLY show mandis with crash > 50% ── */
 function rheatmap(hm){
   const danger=(hm||[]).filter(r=>Number(r.crash)>50).sort((a,b)=>b.crash-a.crash);
   if(!danger.length){
-    return`<div class="no-crash">
-      <div style="font-size:28px;margin-bottom:8px">✅</div>
-      <div style="font-size:15px;font-weight:800;color:var(--green)">All Clear — No Danger Mandis</div>
-      <div style="font-size:12px;color:var(--t2);margin-top:5px">No mandi has crash risk above 50% today</div>
-    </div>`;
+    return`<div class="no-crash"><div style="font-size:28px;margin-bottom:8px">✅</div><div style="font-size:15px;font-weight:800;color:var(--green)">All Clear — No Danger Mandis</div><div style="font-size:12px;color:var(--t2);margin-top:5px">No mandi has crash risk above 50% today</div></div>`;
   }
   return`<div class="hm-grid">${danger.map(r=>{
     const c=r.crash;

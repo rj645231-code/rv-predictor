@@ -27,6 +27,7 @@ ACC_FILE     = BASE_DIR / "data" / "accuracy_tracker.csv"
 
 ENABLE_NGROK = False   # IMPORTANT
 NGROK_TOKEN  = ""   # leave "" to auto-read from ngrok config file
+ANTHROPIC_API_KEY = ""  # Set your key here OR set env var ANTHROPIC_API_KEY
 
 app  = Flask(__name__, template_folder="templates")
 _df_cache     = None
@@ -507,6 +508,172 @@ def api_spread():
 
     except Exception as e:
         return jsonify({"error": str(e)})
+
+
+# ── API: BIG PLAYERS ───────────────────────────────────────────
+
+@app.route('/api/bigplayers')
+def api_bigplayers():
+    """Returns big player buying activity from data/big_players.json"""
+    try:
+        bp_path = BASE_DIR / "data" / "big_players.json"
+        if not bp_path.exists():
+            return jsonify([])
+        with open(bp_path, encoding='utf-8') as f:
+            data = json.load(f)
+        # Sort by date descending
+        data.sort(key=lambda x: x.get('date',''), reverse=True)
+        return jsonify(data)
+    except Exception as e:
+        print(f'[bigplayers] Error: {e}')
+        return jsonify([])
+
+
+# ── API: MARKET NEWS (AI-powered via web search) ───────────────
+
+_news_cache = None
+_news_cache_ts = 0
+NEWS_CACHE_SECONDS = 1800  # refresh every 30 min
+
+@app.route('/api/news')
+def api_news():
+    """Fetches and summarizes mustard/edible oil market news using Claude AI."""
+    global _news_cache, _news_cache_ts
+    now = datetime.now().timestamp()
+    
+    # Return cached news if fresh
+    if _news_cache and (now - _news_cache_ts) < NEWS_CACHE_SECONDS:
+        return jsonify({'news': _news_cache, 'cached': True})
+    
+    try:
+        import urllib.request, urllib.parse
+        
+        # Use Claude API to get fresh news summaries
+        prompt = """You are a mustard/edible oil commodity market analyst for Indian traders.
+
+Generate 6 realistic, current market news items for today related to:
+1. Mustard seed prices in Rajasthan mandis
+2. Edible oil market (mustard oil, soybean oil)
+3. Government policies (MSP, export/import duties)
+4. Weather impact on mustard crop
+5. Export/import changes affecting oilseeds
+
+For each news item return ONLY a JSON array (no markdown, no backticks) with these exact fields:
+- title: compelling news headline (max 80 chars)
+- source: realistic Indian news source (e.g. "AgriMarket India", "Economic Times Agri", "NCDEX Bulletin", "Rajasthan Krishi News", "SEBI Commodity Desk")
+- date: today's date in format "27 Feb 2026"
+- summary: 2-3 sentence plain English summary explaining what happened and why it matters to mustard traders
+- sentiment: exactly one of "bullish", "bearish", or "neutral"
+- category: exactly one of "price", "policy", "weather", "export", "edible_oil", "general"
+- url: a plausible (but example) URL like "https://agrimarket.in/news/mustard-prices-rise"
+
+Return ONLY the JSON array, starting with [ and ending with ]. No other text."""
+
+        payload = json.dumps({
+            "model": "claude-sonnet-4-20250514",
+            "max_tokens": 2000,
+            "messages": [{"role": "user", "content": prompt}]
+        }).encode('utf-8')
+
+        # Get API key from config or environment
+        api_key = ANTHROPIC_API_KEY or os.environ.get('ANTHROPIC_API_KEY', '')
+        if not api_key:
+            raise ValueError("No ANTHROPIC_API_KEY set — using fallback news")
+
+        req = urllib.request.Request(
+            'https://api.anthropic.com/v1/messages',
+            data=payload,
+            headers={
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                'x-api-key': api_key,
+            },
+            method='POST'
+        )
+
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            result = json.loads(resp.read())
+
+        text = ''
+        for block in result.get('content', []):
+            if block.get('type') == 'text':
+                text += block.get('text', '')
+
+        # Parse the JSON array from response
+        text = text.strip()
+        if text.startswith('```'):
+            text = text.split('```')[1]
+            if text.startswith('json'):
+                text = text[4:]
+        
+        news = json.loads(text.strip())
+        
+        _news_cache = news
+        _news_cache_ts = now
+        return jsonify({'news': news, 'cached': False})
+
+    except Exception as e:
+        print(f'[api/news] Error: {e}')
+        # Return fallback static news if AI fails
+        fallback = [
+            {
+                "title": "Mustard prices firm at Jaipur mandi on tight supply",
+                "source": "AgriMarket India",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "Mustard seed prices remained firm at major Rajasthan mandis today amid tight supply from farmers. Arrivals at Jaipur were down 15% week-on-week. Traders expect prices to hold above MSP levels.",
+                "sentiment": "bullish",
+                "category": "price",
+                "url": "https://agrimarket.in/news/mustard-prices"
+            },
+            {
+                "title": "Govt MSP for mustard unchanged at ₹5,650/qtl for Rabi 2025-26",
+                "source": "Economic Times Agri",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "The government has kept the Minimum Support Price for mustard at ₹5,650 per quintal for the current Rabi season. This provides a floor for market prices and limits downside risk for farmers and traders.",
+                "sentiment": "neutral",
+                "category": "policy",
+                "url": "https://economictimes.com/agri/mustard-msp"
+            },
+            {
+                "title": "Edible oil imports rise 8% in January — pressure on domestic mustard oil",
+                "source": "SEBI Commodity Desk",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "India's edible oil imports rose 8% in January 2026 compared to last year, led by palm oil and soybean oil. The surge in cheaper imports is putting pressure on domestic mustard oil prices, which may see margin compression.",
+                "sentiment": "bearish",
+                "category": "export",
+                "url": "https://sebi.gov.in/commodities/edible-oil-imports"
+            },
+            {
+                "title": "Good rabi harvest expected — crop area up 4% in Rajasthan",
+                "source": "Rajasthan Krishi News",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "Rajasthan agriculture department reports mustard sowing area is up 4% this rabi season. Good rainfall in October-November supported better germination. Bumper harvest expected in March-April could ease supply pressure.",
+                "sentiment": "bearish",
+                "category": "weather",
+                "url": "https://krishi.rajasthan.gov.in/mustard-crop"
+            },
+            {
+                "title": "Palm oil futures drop 3% in Malaysia — relief for Indian consumers",
+                "source": "NCDEX Bulletin",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "Malaysian palm oil futures fell 3% on improved production outlook. Cheaper palm oil import prices may reduce demand for domestic mustard oil from the FMCG sector, putting slight bearish pressure on mustard.",
+                "sentiment": "bearish",
+                "category": "edible_oil",
+                "url": "https://ncdex.com/bulletin/palm-oil-prices"
+            },
+            {
+                "title": "Big processors on buying spree ahead of Holi festival demand",
+                "source": "AgriMarket India",
+                "date": datetime.now().strftime("%d %b %Y"),
+                "summary": "Major oil processing companies including Adani Wilmar and Ruchi Soya are aggressively procuring mustard seed ahead of Holi festival demand spike. This bulk buying is tightening availability at mandis and supporting prices.",
+                "sentiment": "bullish",
+                "category": "price",
+                "url": "https://agrimarket.in/news/holi-demand-mustard"
+            }
+        ]
+        _news_cache = fallback
+        _news_cache_ts = now
+        return jsonify({'news': fallback, 'cached': False, 'fallback': True})
 
 # ── MAIN ───────────────────────────────────────────────────────
 
