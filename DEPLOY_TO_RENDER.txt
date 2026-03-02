@@ -1,0 +1,59 @@
+==================================================
+  HOW TO UPDATE rv-predictor.onrender.com
+==================================================
+
+You are deployed on Render.com.
+To push new pages/features, you need to update your code there.
+
+FILES CHANGED IN THIS UPDATE:
+  templates/index.html   ← homepage (news section fixed)
+  templates/base.html    ← bottom nav (5 tabs now)
+  templates/news.html    ← NEW PAGE (add this file)
+  app.py                 ← new /news route added
+  data/big_players.json  ← sample data (add to repo)
+
+--------------------------------------------------
+OPTION A — GitHub (Recommended, Auto-deploys)
+--------------------------------------------------
+If your Render is connected to GitHub:
+
+  1. Copy all changed files into your local project folder
+  2. Open terminal in your project folder:
+
+     git add .
+     git commit -m "Add news page, fix homepage"
+     git push
+
+  3. Render auto-deploys in ~2 minutes
+  4. Visit rv-predictor.onrender.com/news ✅
+
+--------------------------------------------------
+OPTION B — Render Manual Deploy (No GitHub)
+--------------------------------------------------
+  1. Go to render.com → your service → "Shell" tab
+  2. Or use Render's file upload if available
+  3. Or connect to GitHub first (easier long-term)
+
+--------------------------------------------------
+IMPORTANT: data/ folder on Render
+--------------------------------------------------
+Render's filesystem is EPHEMERAL — files written
+at runtime are lost on restart.
+
+For big_players.json to work on Render:
+  - Add it to your GitHub repo (commit it)
+  - OR store data in a database instead
+
+For today_prediction.json (your signals file):
+  - Your prediction script must write to the
+    correct path that Render can access
+  - OR use an API/database to store signals
+
+--------------------------------------------------
+QUICK CHECK after deploying:
+--------------------------------------------------
+  Visit these URLs to verify:
+  ✅ rv-predictor.onrender.com/
+  ✅ rv-predictor.onrender.com/news
+  ✅ rv-predictor.onrender.com/api/debug
+==================================================
