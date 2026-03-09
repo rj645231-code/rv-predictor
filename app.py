@@ -228,74 +228,51 @@ def api_debug():
 
 # ── API: SIGNALS ───────────────────────────────────────────────
 
+import json
+
 @app.route('/api/signals')
 def api_signals():
     try:
-        json_path = "data/today_prediction.json"
-        with open(json_path, "r", encoding="utf-8") as f:
+        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
             raw_data = json.load(f)
 
-        # Get actual data date — try field in JSON first, then file mtime
-        data_date_str = None
-        for row in raw_data:
-            for key in ("Data Date", "data_date", "date", "Date"):
-                v = row.get(key)
-                if v:
-                    try:
-                        data_date_str = pd.to_datetime(str(v)).strftime("%d %b %Y")
-                    except Exception:
-                        pass
-                    break
-            if data_date_str:
-                break
-        if not data_date_str:
-            # Fallback: use file modification time
-            mtime = os.path.getmtime(json_path)
-            data_date_str = datetime.fromtimestamp(mtime).strftime("%d %b %Y")
-
         normalized = []
-        for row in raw_data:
-            def _s(v, default=0):
-                if isinstance(v, str): return v
-                try:
-                    return default if (v is None or (isinstance(v, float) and v != v)) else round(float(v), 2)
-                except Exception: return default
 
+        for row in raw_data:
             normalized.append({
-                "mandi":   _s(row.get("Mandi", ""), ""),
-                "price":   _s(row.get("Current Price", 0)),
-                "pred1":   _s(row.get("Pred 1d ₹", 0)),
-                "pred3":   _s(row.get("Pred 3d ₹", 0)),
-                "pred7":   _s(row.get("Pred 7d ₹", 0)),
-                "pred14":  _s(row.get("Pred 14d ₹", 0)),
-                "ret1":    _s(row.get("Ret 1d %", 0)),
-                "ret3":    _s(row.get("Ret 3d %", 0)),
-                "ret7":    _s(row.get("Ret 7d %", 0)),
-                "ret14":   _s(row.get("Ret 14d %", 0)),
-                "conf1":   _s(row.get("Conf 1d %", 0)),
-                "conf3":   _s(row.get("Conf 3d %", 0)),
-                "conf7":   _s(row.get("Conf 7d %", 0)),
-                "conf14":  _s(row.get("Conf 14d %", 0)),
-                "score":   _s(row.get("Procurement Score", 0)),
-                "crash":   _s(row.get("Crash Risk %", 0)),
-                "entry":   _s(row.get("Entry Signal", ""), ""),
-                "plan":    _s(row.get("Planning Signal", ""), ""),
-                "arrival": _s(row.get("Arrival Pressure", 0)),
-                "zone":    _s(row.get("Price Zone", ""), ""),
-                "regime":  _s(row.get("Regime", row.get("Market Regime", "")), ""),
-                "trend":   _s(row.get("Trend Shape", ""), ""),
-                "rows":    _s(row.get("Rows", 0)),
+                "mandi": row.get("Mandi", ""),
+                "price": row.get("Current Price", 0),
+                "pred1": row.get("Pred 1d ₹", 0),
+                "pred3": row.get("Pred 3d ₹", 0),
+                "pred7": row.get("Pred 7d ₹", 0),
+                "pred14": row.get("Pred 14d ₹", 0),
+                "ret1": row.get("Ret 1d %", 0),
+                "ret3": row.get("Ret 3d %", 0),
+                "ret7": row.get("Ret 7d %", 0),
+                "ret14": row.get("Ret 14d %", 0),
+                "conf1": row.get("Conf 1d %", 0),
+                "conf3": row.get("Conf 3d %", 0),
+                "conf7": row.get("Conf 7d %", 0),
+                "conf14": row.get("Conf 14d %", 0),
+                "score": row.get("Procurement Score", 0),
+                "crash": row.get("Crash Risk %", 0),
+                "entry": row.get("Entry Signal", ""),
+                "plan": row.get("Planning Signal", ""),
+                "arrival": row.get("Arrival Pressure", 0),
+                "zone": row.get("Price Zone", ""),
+                "regime": row.get("Regime", ""),
+                "trend": row.get("Trend Shape", ""),
             })
 
         return jsonify({
-            "data":        normalized,
-            "report_date": data_date_str,
-            "total":       len(normalized)
+            "data": normalized,
+            "report_date": "Latest",
+            "total": len(normalized)
         })
 
     except Exception as e:
         print("SIGNALS ERROR:", e)
-        return jsonify({"error": str(e), "data": [], "report_date": None})
+        return jsonify({"error": str(e), "data": []})
 # ── API: MANDI PRICE HISTORY ───────────────────────────────────
 
 @app.route('/api/history/<mandi>')
@@ -469,23 +446,23 @@ def api_seasonality():
 @app.route('/api/heatmap')
 def api_heatmap():
     try:
-        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
-            raw_data = json.load(f)
+        df = pd.read_json("data/today_prediction.json")
 
         result = []
-        for row in raw_data:
-            mandi = str(row.get('Mandi', row.get('mandi', ''))).strip()
-            crash = float(row.get('Crash Risk %', row.get('crash', 0)) or 0)
-            score = float(row.get('Procurement Score', row.get('score', 0)) or 0)
-            price = float(row.get('Current Price', row.get('price', 0)) or 0)
-            entry = str(row.get('Entry Signal', row.get('entry', '')))
 
-            if mandi and mandi != 'nan':
+        for _, row in df.iterrows():
+            mandi = str(row.get('mandi', '')).strip()
+            crash = float(row.get('crash', 0) or 0)
+            score = float(row.get('score', 0) or 0)
+            price = float(row.get('price', 0) or 0)
+            entry = str(row.get('entry', ''))
+
+            if mandi:
                 result.append({
                     'mandi': mandi,
-                    'crash': round(crash, 1),
-                    'score': round(score, 2),
-                    'price': round(price, 0),
+                    'crash': crash,
+                    'score': score,
+                    'price': price,
                     'entry': entry,
                 })
 
@@ -493,7 +470,6 @@ def api_heatmap():
         return jsonify(result)
 
     except Exception as e:
-        print(f"[heatmap] Error: {e}")
         return jsonify({"error": str(e)})
 
 
@@ -532,7 +508,7 @@ def api_spread():
             "cheapest": rows[0],
             "avg": round(sum(r["price"] for r in rows)/len(rows), 0),
             "spread": round(rows[-1]["price"] - rows[0]["price"], 0),
-            "date": datetime.fromtimestamp(os.path.getmtime("data/today_prediction.json")).strftime("%d %b %Y")
+            "date": "Latest"
         })
 
     except Exception as e:
@@ -558,152 +534,224 @@ def api_bigplayers():
         return jsonify([])
 
 
-# ── API: MARKET NEWS (AI-powered via web search) ───────────────
+# ── API: MARKET NEWS (real web search via Claude AI) ──────────────
 
-_news_cache = None
+_news_cache    = None
 _news_cache_ts = 0
-NEWS_CACHE_SECONDS = 1800  # refresh every 30 min
+NEWS_CACHE_SECONDS = 900   # 15 min — fresh enough, cheap on API calls
+
+# Search queries rotated so every refresh hits different topics
+_SEARCH_QUERIES = [
+    "mustard seed price India mandi today 2026",
+    "sarson price Rajasthan 2026 mandi",
+    "mustard oil price India today",
+    "edible oil import export India 2026",
+    "rapeseed mustard MSP government policy India 2026",
+    "mustard crop harvest Rajasthan weather 2026",
+    "NCDEX mustard futures price today",
+    "palm oil soybean oil India price 2026",
+]
+_query_idx = 0   # rotates on each refresh so we get varied sources
+
+
+def _run_claude_news_search(api_key: str, today_str: str) -> list:
+    """
+    Calls Claude with web_search tool enabled.
+    Claude searches the web for real mustard/edible oil news,
+    then returns structured JSON news items.
+    """
+    import urllib.request
+
+    global _query_idx
+    # Pick 3 varied queries for this refresh
+    queries = []
+    for i in range(3):
+        queries.append(_SEARCH_QUERIES[(_query_idx + i) % len(_SEARCH_QUERIES)])
+    _query_idx = (_query_idx + 3) % len(_SEARCH_QUERIES)
+
+    search_instruction = "\n".join(f"- {q}" for q in queries)
+
+    prompt = f"""Today is {today_str}. You are a mustard/edible oil commodity analyst for Indian traders.
+
+Search the web for REAL, CURRENT news using these queries:
+{search_instruction}
+
+After searching, pick the 8 most relevant and recent stories you found.
+For each story return a JSON object with these exact fields:
+- title: the actual article headline (max 90 chars, keep it real)
+- source: the actual news source name (e.g. "Economic Times", "Business Standard", "Agri Farming")
+- date: publication date as found, or "{today_str}" if unknown
+- summary: 2-3 sentences in plain English — what happened and why it matters to mustard/oilseed traders in India
+- sentiment: exactly one of "bullish", "bearish", or "neutral" (your assessment of price impact)
+- category: exactly one of "price", "policy", "weather", "export", "edible_oil", "general"
+- url: the actual article URL you found (not made up)
+
+IMPORTANT:
+- Only include stories you actually found via web search — no made-up news
+- If you found fewer than 4 real stories, include them and fill remaining slots with your best analysis of current market conditions clearly labelled source: "Market Analysis"
+- Return ONLY a valid JSON array [ ... ] with no markdown, no backticks, no other text"""
+
+    payload = json.dumps({
+        "model": "claude-sonnet-4-6",
+        "max_tokens": 3000,
+        "tools": [{
+            "type": "web_search_20250305",
+            "name": "web_search"
+        }],
+        "messages": [{"role": "user", "content": prompt}]
+    }).encode('utf-8')
+
+    req = urllib.request.Request(
+        'https://api.anthropic.com/v1/messages',
+        data=payload,
+        headers={
+            'Content-Type':      'application/json',
+            'anthropic-version': '2023-06-01',
+            'x-api-key':         api_key,
+        },
+        method='POST'
+    )
+
+    with urllib.request.urlopen(req, timeout=45) as resp:
+        result = json.loads(resp.read())
+
+    # Extract text from all content blocks (Claude may interleave tool_use + text)
+    text = ''
+    for block in result.get('content', []):
+        if block.get('type') == 'text':
+            text += block.get('text', '')
+
+    # Parse JSON — strip any accidental markdown fences
+    text = text.strip()
+    if '```' in text:
+        parts = text.split('```')
+        for part in parts:
+            part = part.strip()
+            if part.startswith('json'):
+                part = part[4:].strip()
+            if part.startswith('['):
+                text = part
+                break
+    # Find the JSON array boundaries robustly
+    start = text.find('[')
+    end   = text.rfind(']') + 1
+    if start == -1 or end == 0:
+        raise ValueError(f"No JSON array found in response. Got: {text[:200]}")
+    return json.loads(text[start:end])
+
+
+def _fallback_news(today_str: str) -> list:
+    """Static fallback shown only when API is completely unavailable."""
+    return [
+        {
+            "title":     "Mustard prices firm at Jaipur mandi on tight supply",
+            "source":    "AgriMarket India",
+            "date":      today_str,
+            "summary":   "Mustard seed prices remained firm at major Rajasthan mandis amid tight supply. Arrivals at Jaipur were down 15% week-on-week. Traders expect prices to hold above MSP levels.",
+            "sentiment": "bullish",
+            "category":  "price",
+            "url":       "https://agrimarket.in/news/mustard-prices"
+        },
+        {
+            "title":     "Edible oil imports up — pressure on domestic mustard oil",
+            "source":    "Economic Times Agri",
+            "date":      today_str,
+            "summary":   "India edible oil imports rose in recent months, led by palm oil and soybean oil. Cheaper imports are putting pressure on domestic mustard oil prices and may compress trader margins.",
+            "sentiment": "bearish",
+            "category":  "export",
+            "url":       "https://economictimes.indiatimes.com/markets/commodities"
+        },
+        {
+            "title":     "Rabi mustard harvest outlook — crop area up in Rajasthan",
+            "source":    "Rajasthan Krishi News",
+            "date":      today_str,
+            "summary":   "Rajasthan agriculture department reports mustard sowing area up this rabi season. Good rainfall supported germination. Bumper harvest expected in March-April, which could ease supply pressure.",
+            "sentiment": "bearish",
+            "category":  "weather",
+            "url":       "https://krishi.rajasthan.gov.in"
+        },
+        {
+            "title":     "Govt MSP for mustard — current season support price",
+            "source":    "NCDEX Bulletin",
+            "date":      today_str,
+            "summary":   "The Minimum Support Price for mustard provides a price floor for farmers. Market prices are currently trading above MSP, signalling healthy demand from processors and traders.",
+            "sentiment": "neutral",
+            "category":  "policy",
+            "url":       "https://ncdex.com"
+        },
+    ]
+
 
 @app.route('/api/news')
 def api_news():
-    """Fetches and summarizes mustard/edible oil market news using Claude AI."""
+    """
+    Real-time mustard/oilseed market news via Claude AI with web search.
+    - Cache: 15 minutes (avoids hammering API on every page load)
+    - ?refresh=1 : bypass cache and fetch fresh news immediately
+    - ?count=N   : request N news items (default 8, max 12)
+    """
     global _news_cache, _news_cache_ts
-    now = datetime.now().timestamp()
-    
-    # Return cached news if fresh (unless ?refresh=1 is passed)
+    now        = datetime.now().timestamp()
+    today_str  = datetime.now().strftime("%d %b %Y")
+
     force_refresh = request.args.get('refresh', '0') == '1'
+
+    # Serve cache if still fresh
     if _news_cache and not force_refresh and (now - _news_cache_ts) < NEWS_CACHE_SECONDS:
-        return jsonify({'news': _news_cache, 'cached': True})
-    
+        age_min = int((now - _news_cache_ts) / 60)
+        return jsonify({
+            'news':       _news_cache,
+            'cached':     True,
+            'cache_age':  age_min,
+            'next_refresh': int((NEWS_CACHE_SECONDS - (now - _news_cache_ts)) / 60),
+        })
+
+    api_key = ANTHROPIC_API_KEY or os.environ.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        print('[api/news] No API key — serving fallback')
+        fallback = _fallback_news(today_str)
+        return jsonify({'news': fallback, 'cached': False, 'fallback': True,
+                        'error': 'No ANTHROPIC_API_KEY configured'})
+
     try:
-        import urllib.request, urllib.parse
-        
-        # Use Claude API to get fresh news summaries
-        prompt = """You are a mustard/edible oil commodity market analyst for Indian traders.
+        print(f'[api/news] Fetching fresh news via web search... (force={force_refresh})')
+        news = _run_claude_news_search(api_key, today_str)
 
-Generate 6 realistic, current market news items for today related to:
-1. Mustard seed prices in Rajasthan mandis
-2. Edible oil market (mustard oil, soybean oil)
-3. Government policies (MSP, export/import duties)
-4. Weather impact on mustard crop
-5. Export/import changes affecting oilseeds
+        # Validate and normalise each item
+        valid_news = []
+        for item in news:
+            if not isinstance(item, dict): continue
+            if not item.get('title'):      continue
+            valid_news.append({
+                'title':     str(item.get('title',     ''))[:120],
+                'source':    str(item.get('source',    'Market News')),
+                'date':      str(item.get('date',      today_str)),
+                'summary':   str(item.get('summary',   '')),
+                'sentiment': item.get('sentiment', 'neutral') if item.get('sentiment') in ('bullish','bearish','neutral') else 'neutral',
+                'category':  item.get('category',  'general') if item.get('category')  in ('price','policy','weather','export','edible_oil','general') else 'general',
+                'url':       str(item.get('url', '')),
+            })
 
-For each news item return ONLY a JSON array (no markdown, no backticks) with these exact fields:
-- title: compelling news headline (max 80 chars)
-- source: realistic Indian news source (e.g. "AgriMarket India", "Economic Times Agri", "NCDEX Bulletin", "Rajasthan Krishi News", "SEBI Commodity Desk")
-- date: today's date in format "27 Feb 2026"
-- summary: 2-3 sentence plain English summary explaining what happened and why it matters to mustard traders
-- sentiment: exactly one of "bullish", "bearish", or "neutral"
-- category: exactly one of "price", "policy", "weather", "export", "edible_oil", "general"
-- url: a plausible (but example) URL like "https://agrimarket.in/news/mustard-prices-rise"
+        if not valid_news:
+            raise ValueError("Claude returned 0 valid news items")
 
-Return ONLY the JSON array, starting with [ and ending with ]. No other text."""
-
-        payload = json.dumps({
-            "model": "claude-sonnet-4-6",
-            "max_tokens": 2000,
-            "messages": [{"role": "user", "content": prompt}]
-        }).encode('utf-8')
-
-        # Get API key from config or environment
-        api_key = ANTHROPIC_API_KEY or os.environ.get('ANTHROPIC_API_KEY', '')
-        if not api_key:
-            raise ValueError("No ANTHROPIC_API_KEY set — using fallback news")
-
-        req = urllib.request.Request(
-            'https://api.anthropic.com/v1/messages',
-            data=payload,
-            headers={
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01',
-                'x-api-key': api_key,
-            },
-            method='POST'
-        )
-
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            result = json.loads(resp.read())
-
-        text = ''
-        for block in result.get('content', []):
-            if block.get('type') == 'text':
-                text += block.get('text', '')
-
-        # Parse the JSON array from response
-        text = text.strip()
-        if text.startswith('```'):
-            text = text.split('```')[1]
-            if text.startswith('json'):
-                text = text[4:]
-        
-        news = json.loads(text.strip())
-        
-        _news_cache = news
+        _news_cache    = valid_news
         _news_cache_ts = now
-        return jsonify({'news': news, 'cached': False})
+        print(f'[api/news] Got {len(valid_news)} real news items')
+        return jsonify({'news': valid_news, 'cached': False, 'count': len(valid_news)})
 
     except Exception as e:
         print(f'[api/news] Error: {e}')
-        # Return fallback static news if AI fails
-        fallback = [
-            {
-                "title": "Mustard prices firm at Jaipur mandi on tight supply",
-                "source": "AgriMarket India",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "Mustard seed prices remained firm at major Rajasthan mandis today amid tight supply from farmers. Arrivals at Jaipur were down 15% week-on-week. Traders expect prices to hold above MSP levels.",
-                "sentiment": "bullish",
-                "category": "price",
-                "url": "https://agrimarket.in/news/mustard-prices"
-            },
-            {
-                "title": "Govt MSP for mustard unchanged at ₹5,650/qtl for Rabi 2025-26",
-                "source": "Economic Times Agri",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "The government has kept the Minimum Support Price for mustard at ₹5,650 per quintal for the current Rabi season. This provides a floor for market prices and limits downside risk for farmers and traders.",
-                "sentiment": "neutral",
-                "category": "policy",
-                "url": "https://economictimes.com/agri/mustard-msp"
-            },
-            {
-                "title": "Edible oil imports rise 8% in January — pressure on domestic mustard oil",
-                "source": "SEBI Commodity Desk",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "India's edible oil imports rose 8% in January 2026 compared to last year, led by palm oil and soybean oil. The surge in cheaper imports is putting pressure on domestic mustard oil prices, which may see margin compression.",
-                "sentiment": "bearish",
-                "category": "export",
-                "url": "https://sebi.gov.in/commodities/edible-oil-imports"
-            },
-            {
-                "title": "Good rabi harvest expected — crop area up 4% in Rajasthan",
-                "source": "Rajasthan Krishi News",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "Rajasthan agriculture department reports mustard sowing area is up 4% this rabi season. Good rainfall in October-November supported better germination. Bumper harvest expected in March-April could ease supply pressure.",
-                "sentiment": "bearish",
-                "category": "weather",
-                "url": "https://krishi.rajasthan.gov.in/mustard-crop"
-            },
-            {
-                "title": "Palm oil futures drop 3% in Malaysia — relief for Indian consumers",
-                "source": "NCDEX Bulletin",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "Malaysian palm oil futures fell 3% on improved production outlook. Cheaper palm oil import prices may reduce demand for domestic mustard oil from the FMCG sector, putting slight bearish pressure on mustard.",
-                "sentiment": "bearish",
-                "category": "edible_oil",
-                "url": "https://ncdex.com/bulletin/palm-oil-prices"
-            },
-            {
-                "title": "Big processors on buying spree ahead of Holi festival demand",
-                "source": "AgriMarket India",
-                "date": datetime.now().strftime("%d %b %Y"),
-                "summary": "Major oil processing companies including Adani Wilmar and Ruchi Soya are aggressively procuring mustard seed ahead of Holi festival demand spike. This bulk buying is tightening availability at mandis and supporting prices.",
-                "sentiment": "bullish",
-                "category": "price",
-                "url": "https://agrimarket.in/news/holi-demand-mustard"
-            }
-        ]
-        _news_cache = fallback
-        _news_cache_ts = now
-        return jsonify({'news': fallback, 'cached': False, 'fallback': True})
+        # If we have stale cache, return it rather than fallback
+        if _news_cache:
+            age_min = int((now - _news_cache_ts) / 60)
+            print(f'[api/news] Returning stale cache ({age_min}m old)')
+            return jsonify({'news': _news_cache, 'cached': True,
+                            'stale': True, 'cache_age': age_min, 'error': str(e)})
+        # Last resort — static fallback
+        fallback = _fallback_news(today_str)
+        return jsonify({'news': fallback, 'cached': False, 'fallback': True, 'error': str(e)})
+
 
 # ── MAIN ───────────────────────────────────────────────────────
 

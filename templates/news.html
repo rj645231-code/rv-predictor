@@ -118,9 +118,12 @@
 
 <!-- Refresh bar -->
 <div class="refresh-bar" id="refresh-bar" style="display:none">
-  <div class="refresh-ts" id="refresh-ts">Loading...</div>
+  <div>
+    <div class="refresh-ts" id="refresh-ts">Loading...</div>
+    <div id="refresh-countdown" style="font-size:9px;color:var(--t3);margin-top:2px"></div>
+  </div>
   <button class="refresh-btn" id="refresh-btn" onclick="loadNews(true)">
-    <span class="ri">🔄</span> Refresh
+    <span class="ri">🔄</span> Get Fresh News
   </button>
 </div>
 
@@ -149,11 +152,14 @@ var CAT_MAP = {
   general:   '📰 General'
 };
 
+var _nextRefreshMin = 15;
+var _countdownTimer = null;
+
 async function loadNews(refresh) {
-  var el = document.getElementById('news-root');
+  var el  = document.getElementById('news-root');
+  var btn = document.getElementById('refresh-btn');
   if (refresh) {
-    el.innerHTML = '<div class="news-loading"><div class="sp"></div>Fetching fresh news...</div>';
-    var btn = document.getElementById('refresh-btn');
+    el.innerHTML = '<div class="news-loading"><div class="sp"></div>🔍 Searching the web for fresh mustard & edible oil news...</div>';
     if (btn) { btn.classList.add('spin-icon'); btn.disabled = true; }
   }
   try {
@@ -162,18 +168,50 @@ async function loadNews(refresh) {
     ALL_NEWS = res.news || [];
     updateStats();
     renderNews();
+
     // Show refresh bar
     var bar = document.getElementById('refresh-bar');
     if (bar) bar.style.display = 'flex';
-    var ts = document.getElementById('refresh-ts');
+
+    var ts  = document.getElementById('refresh-ts');
     var now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-    if (ts) ts.textContent = 'Updated ' + now + (res.cached ? ' (cached)' : ' (fresh)');
+    var src = res.fallback  ? ' (offline fallback)'
+            : res.stale     ? ' (stale cache — API error)'
+            : res.cached    ? ' (cached ' + (res.cache_age||0) + 'm ago)'
+            : ' (' + (res.count||ALL_NEWS.length) + ' real stories from web)';
+    if (ts) ts.textContent = '🕐 ' + now + src;
+
+    // Countdown to next auto-refresh
+    _nextRefreshMin = res.next_refresh || (res.cached ? res.next_refresh : 15);
+    startCountdown(_nextRefreshMin);
+
   } catch(e) {
-    el.innerHTML = '<div class="news-empty">⚠️ Could not load news.<br><small style="color:var(--t3)">Check if Flask is running with ANTHROPIC_API_KEY set.</small></div>';
+    el.innerHTML = '<div class="news-empty">⚠️ Could not load news.<br>' +
+      '<small style="color:var(--t3)">Check Flask is running and ANTHROPIC_API_KEY is set.</small></div>';
   } finally {
-    var btn = document.getElementById('refresh-btn');
     if (btn) { btn.classList.remove('spin-icon'); btn.disabled = false; }
   }
+}
+
+function startCountdown(minutes) {
+  if (_countdownTimer) clearInterval(_countdownTimer);
+  var secs = (minutes || 15) * 60;
+  var el   = document.getElementById('refresh-countdown');
+  function tick() {
+    if (!el) return;
+    if (secs <= 0) {
+      el.textContent = '🔄 Auto-refreshing...';
+      loadNews(false);
+      clearInterval(_countdownTimer);
+      return;
+    }
+    var m = Math.floor(secs / 60);
+    var s = secs % 60;
+    el.textContent = 'Next auto-refresh in ' + m + 'm ' + (s<10?'0':'')+s + 's';
+    secs--;
+  }
+  tick();
+  _countdownTimer = setInterval(tick, 1000);
 }
 
 function updateStats() {
