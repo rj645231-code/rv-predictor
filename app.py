@@ -169,6 +169,18 @@ def clean_signal_row(row):
 
 # ── PAGES ──────────────────────────────────────────────────────
 
+
+@app.route('/api/status')
+def api_status():
+    """Health check endpoint for Render."""
+    has_data = os.path.exists("data/today_prediction.json")
+    return jsonify({
+        "status": "ok",
+        "has_prediction_data": has_data,
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    })
+
+
 @app.route('/')
 def home():       return render_template('index.html')
 
@@ -232,6 +244,9 @@ def api_debug():
 def api_signals():
     try:
         json_path = "data/today_prediction.json"
+        if not os.path.exists(json_path):
+            return jsonify({"error": "today_prediction.json not found. Run daily_predict.py first.",
+                            "data": [], "report_date": None})
         with open(json_path, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
 
@@ -469,7 +484,10 @@ def api_seasonality():
 @app.route('/api/heatmap')
 def api_heatmap():
     try:
-        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
+        json_path = "data/today_prediction.json"
+        if not os.path.exists(json_path):
+            return jsonify([])
+        with open(json_path, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
 
         result = []
@@ -503,6 +521,8 @@ def api_heatmap():
 @app.route('/api/spread')
 def api_spread():
     try:
+        if not os.path.exists("data/today_prediction.json"):
+            return jsonify({"error": "No data yet"})
         df = pd.read_json("data/today_prediction.json")
 
         rows = []
