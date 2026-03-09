@@ -65,6 +65,7 @@
 {% block scripts %}
 <script>
 var CUR='', SIG=[], CHART=null, HIST=null;
+window.DATA_DATE='';
 var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 async function init(){
@@ -73,6 +74,7 @@ async function init(){
     var resSigs   = await fetch('/api/signals').then(function(r){return r.json();}).catch(function(){return {data:[]};});
     var mandis = resMandis || [];
     SIG = (resSigs.data) || [];
+    window.DATA_DATE = resSigs.report_date || '';
 
     // Fallback: build mandi list from signals if dataset returned empty
     if(!mandis.length && SIG.length){
@@ -141,7 +143,7 @@ function buildPage(sig, defM, defY){
         '<div class="mandi-title">'+CUR+'</div>' +
         (regime ? '<div class="mandi-sub">'+regime+'</div>' : '') +
       '</div>' +
-      (price ? '<div class="mandi-price-wrap"><div class="mandi-price">'+price+'</div><div class="mandi-sub">Today\'s Price</div></div>' : '') +
+      (price ? '<div class="mandi-price-wrap"><div class="mandi-price">'+price+'</div><div class="mandi-sub">'+(window.DATA_DATE ? '📅 '+window.DATA_DATE : 'Latest Price')+'</div></div>' : '') +
     '</div>' +
     '<div class="sec-lbl amb">🤖 AI Prediction — Today\'s Outlook</div>' +
     '<div id="ai-sec"></div>' +
@@ -221,6 +223,7 @@ function renderAI(sig){
 
   el.innerHTML =
     '<div class="ai-block an">' +
+      (window.DATA_DATE ? '<div style="font-size:10px;color:var(--amber);font-weight:600;margin-bottom:10px;letter-spacing:0.5px">📅 Data as of '+window.DATA_DATE+'</div>' : '') +
       '<div class="h4">'+hh+'</div>' +
       '<div class="ai-divider"></div>' +
       '<div class="air"><span class="airl">Entry Signal (1d)</span><span class="airv" style="color:'+ec+'">'+(sig.entry||'—')+'</span></div>' +

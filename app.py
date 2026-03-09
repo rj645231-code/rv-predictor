@@ -228,51 +228,74 @@ def api_debug():
 
 # ── API: SIGNALS ───────────────────────────────────────────────
 
-import json
-
 @app.route('/api/signals')
 def api_signals():
     try:
-        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
+        json_path = "data/today_prediction.json"
+        with open(json_path, "r", encoding="utf-8") as f:
             raw_data = json.load(f)
 
-        normalized = []
-
+        # Get actual data date — try field in JSON first, then file mtime
+        data_date_str = None
         for row in raw_data:
+            for key in ("Data Date", "data_date", "date", "Date"):
+                v = row.get(key)
+                if v:
+                    try:
+                        data_date_str = pd.to_datetime(str(v)).strftime("%d %b %Y")
+                    except Exception:
+                        pass
+                    break
+            if data_date_str:
+                break
+        if not data_date_str:
+            # Fallback: use file modification time
+            mtime = os.path.getmtime(json_path)
+            data_date_str = datetime.fromtimestamp(mtime).strftime("%d %b %Y")
+
+        normalized = []
+        for row in raw_data:
+            def _s(v, default=0):
+                if isinstance(v, str): return v
+                try:
+                    return default if (v is None or (isinstance(v, float) and v != v)) else round(float(v), 2)
+                except Exception: return default
+
             normalized.append({
-                "mandi": row.get("Mandi", ""),
-                "price": row.get("Current Price", 0),
-                "pred1": row.get("Pred 1d ₹", 0),
-                "pred3": row.get("Pred 3d ₹", 0),
-                "pred7": row.get("Pred 7d ₹", 0),
-                "pred14": row.get("Pred 14d ₹", 0),
-                "ret1": row.get("Ret 1d %", 0),
-                "ret3": row.get("Ret 3d %", 0),
-                "ret7": row.get("Ret 7d %", 0),
-                "ret14": row.get("Ret 14d %", 0),
-                "conf1": row.get("Conf 1d %", 0),
-                "conf3": row.get("Conf 3d %", 0),
-                "conf7": row.get("Conf 7d %", 0),
-                "conf14": row.get("Conf 14d %", 0),
-                "score": row.get("Procurement Score", 0),
-                "crash": row.get("Crash Risk %", 0),
-                "entry": row.get("Entry Signal", ""),
-                "plan": row.get("Planning Signal", ""),
-                "arrival": row.get("Arrival Pressure", 0),
-                "zone": row.get("Price Zone", ""),
-                "regime": row.get("Regime", ""),
-                "trend": row.get("Trend Shape", ""),
+                "mandi":   _s(row.get("Mandi", ""), ""),
+                "price":   _s(row.get("Current Price", 0)),
+                "pred1":   _s(row.get("Pred 1d ₹", 0)),
+                "pred3":   _s(row.get("Pred 3d ₹", 0)),
+                "pred7":   _s(row.get("Pred 7d ₹", 0)),
+                "pred14":  _s(row.get("Pred 14d ₹", 0)),
+                "ret1":    _s(row.get("Ret 1d %", 0)),
+                "ret3":    _s(row.get("Ret 3d %", 0)),
+                "ret7":    _s(row.get("Ret 7d %", 0)),
+                "ret14":   _s(row.get("Ret 14d %", 0)),
+                "conf1":   _s(row.get("Conf 1d %", 0)),
+                "conf3":   _s(row.get("Conf 3d %", 0)),
+                "conf7":   _s(row.get("Conf 7d %", 0)),
+                "conf14":  _s(row.get("Conf 14d %", 0)),
+                "score":   _s(row.get("Procurement Score", 0)),
+                "crash":   _s(row.get("Crash Risk %", 0)),
+                "entry":   _s(row.get("Entry Signal", ""), ""),
+                "plan":    _s(row.get("Planning Signal", ""), ""),
+                "arrival": _s(row.get("Arrival Pressure", 0)),
+                "zone":    _s(row.get("Price Zone", ""), ""),
+                "regime":  _s(row.get("Regime", row.get("Market Regime", "")), ""),
+                "trend":   _s(row.get("Trend Shape", ""), ""),
+                "rows":    _s(row.get("Rows", 0)),
             })
 
         return jsonify({
-            "data": normalized,
-            "report_date": "Latest",
-            "total": len(normalized)
+            "data":        normalized,
+            "report_date": data_date_str,
+            "total":       len(normalized)
         })
 
     except Exception as e:
         print("SIGNALS ERROR:", e)
-        return jsonify({"error": str(e), "data": []})
+        return jsonify({"error": str(e), "data": [], "report_date": None})
 # ── API: MANDI PRICE HISTORY ───────────────────────────────────
 
 @app.route('/api/history/<mandi>')
@@ -446,23 +469,23 @@ def api_seasonality():
 @app.route('/api/heatmap')
 def api_heatmap():
     try:
-        df = pd.read_json("data/today_prediction.json")
+        with open("data/today_prediction.json", "r", encoding="utf-8") as f:
+            raw_data = json.load(f)
 
         result = []
+        for row in raw_data:
+            mandi = str(row.get('Mandi', row.get('mandi', ''))).strip()
+            crash = float(row.get('Crash Risk %', row.get('crash', 0)) or 0)
+            score = float(row.get('Procurement Score', row.get('score', 0)) or 0)
+            price = float(row.get('Current Price', row.get('price', 0)) or 0)
+            entry = str(row.get('Entry Signal', row.get('entry', '')))
 
-        for _, row in df.iterrows():
-            mandi = str(row.get('mandi', '')).strip()
-            crash = float(row.get('crash', 0) or 0)
-            score = float(row.get('score', 0) or 0)
-            price = float(row.get('price', 0) or 0)
-            entry = str(row.get('entry', ''))
-
-            if mandi:
+            if mandi and mandi != 'nan':
                 result.append({
                     'mandi': mandi,
-                    'crash': crash,
-                    'score': score,
-                    'price': price,
+                    'crash': round(crash, 1),
+                    'score': round(score, 2),
+                    'price': round(price, 0),
                     'entry': entry,
                 })
 
@@ -470,6 +493,7 @@ def api_heatmap():
         return jsonify(result)
 
     except Exception as e:
+        print(f"[heatmap] Error: {e}")
         return jsonify({"error": str(e)})
 
 
@@ -508,7 +532,7 @@ def api_spread():
             "cheapest": rows[0],
             "avg": round(sum(r["price"] for r in rows)/len(rows), 0),
             "spread": round(rows[-1]["price"] - rows[0]["price"], 0),
-            "date": "Latest"
+            "date": datetime.fromtimestamp(os.path.getmtime("data/today_prediction.json")).strftime("%d %b %Y")
         })
 
     except Exception as e:
@@ -576,7 +600,7 @@ For each news item return ONLY a JSON array (no markdown, no backticks) with the
 Return ONLY the JSON array, starting with [ and ending with ]. No other text."""
 
         payload = json.dumps({
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 2000,
             "messages": [{"role": "user", "content": prompt}]
         }).encode('utf-8')
