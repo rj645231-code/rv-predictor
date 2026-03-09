@@ -579,223 +579,168 @@ def api_bigplayers():
         return jsonify([])
 
 
-# ── API: MARKET NEWS (real web search via Claude AI) ──────────────
+# ── API: MARKET NEWS via NewsAPI.org ──────────────────────────
 
-_news_cache    = None
-_news_cache_ts = 0
-NEWS_CACHE_SECONDS = 900   # 15 min — fresh enough, cheap on API calls
+# Get free key at https://newsapi.org/register (100 req/day free)
+NEWSAPI_KEY = os.environ.get('NEWSAPI_KEY', '')
 
-# Search queries rotated so every refresh hits different topics
-_SEARCH_QUERIES = [
-    "mustard seed price India mandi today 2026",
-    "sarson price Rajasthan 2026 mandi",
-    "mustard oil price India today",
-    "edible oil import export India 2026",
-    "rapeseed mustard MSP government policy India 2026",
-    "mustard crop harvest Rajasthan weather 2026",
-    "NCDEX mustard futures price today",
-    "palm oil soybean oil India price 2026",
-]
-_query_idx = 0   # rotates on each refresh so we get varied sources
+_news_cache    = {}   # keyed by query string
+_news_cache_ts = {}
+
+NEWS_CACHE_SECONDS = 300   # 5 min per query
+
+# Mustard/oilseed focused search queries — rotated per category button
+_CATEGORY_QUERIES = {
+    "all":        "mustard oil OR sarson OR edible oil India",
+    "price":      "mustard seed price mandi India",
+    "edible_oil": "mustard oil soybean palm oil price India",
+    "export":     "edible oil import export India oilseed",
+    "policy":     "mustard MSP government NCDEX India",
+    "weather":    "mustard crop rabi harvest Rajasthan India",
+    "general":    "mustard sarson commodity India",
+}
 
 
-def _run_claude_news_search(api_key: str, today_str: str) -> list:
+def _fetch_newsapi(query: str, page: int = 1, page_size: int = 12) -> list:
     """
-    Calls Claude with web_search tool enabled.
-    Claude searches the web for real mustard/edible oil news,
-    then returns structured JSON news items.
+    Calls NewsAPI.org /v2/everything endpoint.
+    Returns list of normalised article dicts.
     """
-    import urllib.request
+    import urllib.request, urllib.parse
 
-    global _query_idx
-    # Pick 3 varied queries for this refresh
-    queries = []
-    for i in range(3):
-        queries.append(_SEARCH_QUERIES[(_query_idx + i) % len(_SEARCH_QUERIES)])
-    _query_idx = (_query_idx + 3) % len(_SEARCH_QUERIES)
+    params = urllib.parse.urlencode({
+        'q':        query,
+        'page':     page,
+        'pageSize': page_size,
+        'language': 'en',
+        'sortBy':   'publishedAt',
+        'apiKey':   NEWSAPI_KEY,
+    })
+    url = f'https://newsapi.org/v2/everything?{params}'
 
-    search_instruction = "\n".join(f"- {q}" for q in queries)
+    req = urllib.request.Request(url, headers={'User-Agent': 'RVPredictor/1.0'})
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        data = json.loads(resp.read())
 
-    prompt = f"""Today is {today_str}. You are a mustard/edible oil commodity analyst for Indian traders.
+    if data.get('status') != 'ok':
+        raise ValueError(f"NewsAPI error: {data.get('message', data.get('status'))}")
 
-Search the web for REAL, CURRENT news using these queries:
-{search_instruction}
+    articles = []
+    for a in data.get('articles', []):
+        # Skip removed/[Removed] articles
+        title = (a.get('title') or '').strip()
+        if not title or title == '[Removed]': continue
+        source_name = (a.get('source') or {}).get('name') or 'News'
+        pub = a.get('publishedAt', '')
+        try:
+            from datetime import timezone
+            dt = datetime.strptime(pub[:10], '%Y-%m-%d')
+            date_str = dt.strftime('%d %b %Y')
+        except Exception:
+            date_str = datetime.now().strftime('%d %b %Y')
 
-After searching, pick the 8 most relevant and recent stories you found.
-For each story return a JSON object with these exact fields:
-- title: the actual article headline (max 90 chars, keep it real)
-- source: the actual news source name (e.g. "Economic Times", "Business Standard", "Agri Farming")
-- date: publication date as found, or "{today_str}" if unknown
-- summary: 2-3 sentences in plain English — what happened and why it matters to mustard/oilseed traders in India
-- sentiment: exactly one of "bullish", "bearish", or "neutral" (your assessment of price impact)
-- category: exactly one of "price", "policy", "weather", "export", "edible_oil", "general"
-- url: the actual article URL you found (not made up)
-
-IMPORTANT:
-- Only include stories you actually found via web search — no made-up news
-- If you found fewer than 4 real stories, include them and fill remaining slots with your best analysis of current market conditions clearly labelled source: "Market Analysis"
-- Return ONLY a valid JSON array [ ... ] with no markdown, no backticks, no other text"""
-
-    payload = json.dumps({
-        "model": "claude-sonnet-4-6",
-        "max_tokens": 3000,
-        "tools": [{
-            "type": "web_search_20250305",
-            "name": "web_search"
-        }],
-        "messages": [{"role": "user", "content": prompt}]
-    }).encode('utf-8')
-
-    req = urllib.request.Request(
-        'https://api.anthropic.com/v1/messages',
-        data=payload,
-        headers={
-            'Content-Type':      'application/json',
-            'anthropic-version': '2023-06-01',
-            'x-api-key':         api_key,
-        },
-        method='POST'
-    )
-
-    with urllib.request.urlopen(req, timeout=45) as resp:
-        result = json.loads(resp.read())
-
-    # Extract text from all content blocks (Claude may interleave tool_use + text)
-    text = ''
-    for block in result.get('content', []):
-        if block.get('type') == 'text':
-            text += block.get('text', '')
-
-    # Parse JSON — strip any accidental markdown fences
-    text = text.strip()
-    if '```' in text:
-        parts = text.split('```')
-        for part in parts:
-            part = part.strip()
-            if part.startswith('json'):
-                part = part[4:].strip()
-            if part.startswith('['):
-                text = part
-                break
-    # Find the JSON array boundaries robustly
-    start = text.find('[')
-    end   = text.rfind(']') + 1
-    if start == -1 or end == 0:
-        raise ValueError(f"No JSON array found in response. Got: {text[:200]}")
-    return json.loads(text[start:end])
+        articles.append({
+            'title':       title[:120],
+            'source':      source_name,
+            'date':        date_str,
+            'summary':     (a.get('description') or '')[:280],
+            'url':         a.get('url', ''),
+            'image':       a.get('urlToImage', ''),
+            'sentiment':   'neutral',   # NewsAPI doesn't provide — frontend can colour by keyword
+            'category':    'general',
+        })
+    return articles
 
 
 def _fallback_news(today_str: str) -> list:
-    """Static fallback shown only when API is completely unavailable."""
     return [
-        {
-            "title":     "Mustard prices firm at Jaipur mandi on tight supply",
-            "source":    "AgriMarket India",
-            "date":      today_str,
-            "summary":   "Mustard seed prices remained firm at major Rajasthan mandis amid tight supply. Arrivals at Jaipur were down 15% week-on-week. Traders expect prices to hold above MSP levels.",
-            "sentiment": "bullish",
-            "category":  "price",
-            "url":       "https://agrimarket.in/news/mustard-prices"
-        },
-        {
-            "title":     "Edible oil imports up — pressure on domestic mustard oil",
-            "source":    "Economic Times Agri",
-            "date":      today_str,
-            "summary":   "India edible oil imports rose in recent months, led by palm oil and soybean oil. Cheaper imports are putting pressure on domestic mustard oil prices and may compress trader margins.",
-            "sentiment": "bearish",
-            "category":  "export",
-            "url":       "https://economictimes.indiatimes.com/markets/commodities"
-        },
-        {
-            "title":     "Rabi mustard harvest outlook — crop area up in Rajasthan",
-            "source":    "Rajasthan Krishi News",
-            "date":      today_str,
-            "summary":   "Rajasthan agriculture department reports mustard sowing area up this rabi season. Good rainfall supported germination. Bumper harvest expected in March-April, which could ease supply pressure.",
-            "sentiment": "bearish",
-            "category":  "weather",
-            "url":       "https://krishi.rajasthan.gov.in"
-        },
-        {
-            "title":     "Govt MSP for mustard — current season support price",
-            "source":    "NCDEX Bulletin",
-            "date":      today_str,
-            "summary":   "The Minimum Support Price for mustard provides a price floor for farmers. Market prices are currently trading above MSP, signalling healthy demand from processors and traders.",
-            "sentiment": "neutral",
-            "category":  "policy",
-            "url":       "https://ncdex.com"
-        },
+        {"title": "Mustard prices firm at Jaipur mandi on tight supply",
+         "source": "AgriMarket India", "date": today_str,
+         "summary": "Mustard seed prices remained firm at major Rajasthan mandis amid tight supply. Arrivals were down 15% week-on-week.",
+         "sentiment": "bullish", "category": "price", "url": "", "image": ""},
+        {"title": "Edible oil imports rise — pressure on domestic mustard oil",
+         "source": "Economic Times Agri", "date": today_str,
+         "summary": "India edible oil imports rose, led by palm oil. Cheaper imports are putting pressure on domestic mustard oil margins.",
+         "sentiment": "bearish", "category": "export", "url": "", "image": ""},
+        {"title": "Rabi mustard crop area up in Rajasthan this season",
+         "source": "Rajasthan Krishi News", "date": today_str,
+         "summary": "Mustard sowing area rose this rabi season. Bumper harvest expected in March-April, which may ease supply constraints.",
+         "sentiment": "bearish", "category": "weather", "url": "", "image": ""},
+        {"title": "Mustard MSP provides price floor — market trading above support",
+         "source": "NCDEX Bulletin", "date": today_str,
+         "summary": "MSP for mustard gives farmers a guaranteed floor price. Market prices are currently above MSP, signalling healthy demand.",
+         "sentiment": "neutral", "category": "policy", "url": "", "image": ""},
     ]
 
 
 @app.route('/api/news')
 def api_news():
     """
-    Real-time mustard/oilseed market news via Claude AI with web search.
-    - Cache: 15 minutes (avoids hammering API on every page load)
-    - ?refresh=1 : bypass cache and fetch fresh news immediately
-    - ?count=N   : request N news items (default 8, max 12)
+    Live mustard/oilseed news from NewsAPI.org.
+    ?category=price|edible_oil|export|policy|weather|all  (default: all)
+    ?q=custom+search+query   (overrides category)
+    ?page=N                  (pagination, default 1)
+    ?refresh=1               (bypass cache)
     """
     global _news_cache, _news_cache_ts
-    now        = datetime.now().timestamp()
-    today_str  = datetime.now().strftime("%d %b %Y")
+    now       = datetime.now().timestamp()
+    today_str = datetime.now().strftime('%d %b %Y')
 
+    category      = request.args.get('category', 'all')
+    custom_q      = request.args.get('q', '').strip()
+    page          = max(1, int(request.args.get('page', 1)))
     force_refresh = request.args.get('refresh', '0') == '1'
 
-    # Serve cache if still fresh
-    if _news_cache and not force_refresh and (now - _news_cache_ts) < NEWS_CACHE_SECONDS:
-        age_min = int((now - _news_cache_ts) / 60)
+    # Build query
+    if custom_q:
+        query = custom_q + ' India mustard oilseed'
+    else:
+        query = _CATEGORY_QUERIES.get(category, _CATEGORY_QUERIES['all'])
+
+    cache_key = f'{query}|{page}'
+
+    # Cache check
+    if (not force_refresh
+            and cache_key in _news_cache
+            and (now - _news_cache_ts.get(cache_key, 0)) < NEWS_CACHE_SECONDS):
+        age = int((now - _news_cache_ts[cache_key]) / 60)
         return jsonify({
-            'news':       _news_cache,
-            'cached':     True,
-            'cache_age':  age_min,
-            'next_refresh': int((NEWS_CACHE_SECONDS - (now - _news_cache_ts)) / 60),
+            'news':      _news_cache[cache_key],
+            'cached':    True,
+            'cache_age': age,
+            'query':     query,
+            'page':      page,
+            'count':     len(_news_cache[cache_key]),
         })
 
-    api_key = ANTHROPIC_API_KEY or os.environ.get('ANTHROPIC_API_KEY', '')
-    if not api_key:
-        print('[api/news] No API key — serving fallback')
-        fallback = _fallback_news(today_str)
-        return jsonify({'news': fallback, 'cached': False, 'fallback': True,
-                        'error': 'No ANTHROPIC_API_KEY configured'})
+    if not NEWSAPI_KEY:
+        fb = _fallback_news(today_str)
+        return jsonify({'news': fb, 'cached': False, 'fallback': True,
+                        'error': 'No NEWSAPI_KEY set — add it to environment variables'})
 
     try:
-        print(f'[api/news] Fetching fresh news via web search... (force={force_refresh})')
-        news = _run_claude_news_search(api_key, today_str)
+        print(f'[api/news] Fetching page={page} query="{query}"')
+        articles = _fetch_newsapi(query, page=page, page_size=12)
 
-        # Validate and normalise each item
-        valid_news = []
-        for item in news:
-            if not isinstance(item, dict): continue
-            if not item.get('title'):      continue
-            valid_news.append({
-                'title':     str(item.get('title',     ''))[:120],
-                'source':    str(item.get('source',    'Market News')),
-                'date':      str(item.get('date',      today_str)),
-                'summary':   str(item.get('summary',   '')),
-                'sentiment': item.get('sentiment', 'neutral') if item.get('sentiment') in ('bullish','bearish','neutral') else 'neutral',
-                'category':  item.get('category',  'general') if item.get('category')  in ('price','policy','weather','export','edible_oil','general') else 'general',
-                'url':       str(item.get('url', '')),
-            })
+        _news_cache[cache_key]    = articles
+        _news_cache_ts[cache_key] = now
 
-        if not valid_news:
-            raise ValueError("Claude returned 0 valid news items")
-
-        _news_cache    = valid_news
-        _news_cache_ts = now
-        print(f'[api/news] Got {len(valid_news)} real news items')
-        return jsonify({'news': valid_news, 'cached': False, 'count': len(valid_news)})
+        print(f'[api/news] Got {len(articles)} articles')
+        return jsonify({
+            'news':    articles,
+            'cached':  False,
+            'query':   query,
+            'page':    page,
+            'count':   len(articles),
+        })
 
     except Exception as e:
         print(f'[api/news] Error: {e}')
-        # If we have stale cache, return it rather than fallback
-        if _news_cache:
-            age_min = int((now - _news_cache_ts) / 60)
-            print(f'[api/news] Returning stale cache ({age_min}m old)')
-            return jsonify({'news': _news_cache, 'cached': True,
-                            'stale': True, 'cache_age': age_min, 'error': str(e)})
-        # Last resort — static fallback
-        fallback = _fallback_news(today_str)
-        return jsonify({'news': fallback, 'cached': False, 'fallback': True, 'error': str(e)})
+        if cache_key in _news_cache:
+            return jsonify({'news': _news_cache[cache_key], 'cached': True,
+                            'stale': True, 'error': str(e)})
+        fb = _fallback_news(today_str)
+        return jsonify({'news': fb, 'cached': False, 'fallback': True, 'error': str(e)})
 
 
 # ── MAIN ───────────────────────────────────────────────────────

@@ -3,330 +3,353 @@
 {% block title %}RV Predictor — Market News{% endblock %}
 {% block xs %}
 <style>
-/* ── PAGE HEADER ── */
+/* ── HEADER ── */
 .news-hdr{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:16px;margin-bottom:4px;display:flex;align-items:center;gap:14px}
 .news-hdr-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .news-hdr-title{font-size:18px;font-weight:800;letter-spacing:-0.3px}
 .news-hdr-sub{font-size:11px;color:var(--t2);margin-top:3px}
 
-/* ── SENTIMENT TABS ── */
-.sent-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:4px}
-.stab{padding:9px 4px;text-align:center;background:var(--c1);border:1px solid var(--br);border-radius:var(--rs);font-size:10px;font-weight:700;color:var(--t2);cursor:pointer;transition:all 0.18s;font-family:var(--fm)}
-.stab.on{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,0.07)}
-.stab.s-bull.on{border-color:var(--green);color:var(--green);background:rgba(16,185,129,0.07)}
-.stab.s-bear.on{border-color:var(--red);color:var(--red);background:rgba(244,63,94,0.07)}
-.stab.s-neut.on{border-color:var(--blue);color:var(--blue);background:rgba(59,130,246,0.07)}
+/* ── SEARCH BAR ── */
+.search-wrap{display:flex;gap:6px;margin-bottom:4px}
+.search-input{flex:1;background:var(--c1);border:1px solid var(--br);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--t1);font-family:var(--fn);outline:none}
+.search-input:focus{border-color:var(--amber)}
+.search-input::placeholder{color:var(--t3)}
+.search-btn{background:var(--amber);color:#000;border:none;border-radius:var(--rs);padding:10px 16px;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fn);white-space:nowrap}
+.search-btn:active{opacity:0.8}
 
-/* ── CATEGORY PILLS ROW ── */
-.cat-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+/* ── CATEGORY PILLS ── */
+.cat-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:4px}
 .cat-row::-webkit-scrollbar{display:none}
-.cat-pill{flex-shrink:0;padding:6px 12px;background:var(--c1);border:1px solid var(--br);border-radius:20px;font-size:10px;font-weight:700;color:var(--t2);cursor:pointer;transition:all 0.18s;white-space:nowrap}
-.cat-pill.on{background:rgba(245,158,11,0.1);border-color:var(--amber);color:var(--amber)}
+.cat-pill{flex-shrink:0;padding:7px 13px;background:var(--c1);border:1px solid var(--br);border-radius:20px;font-size:10px;font-weight:700;color:var(--t2);cursor:pointer;transition:all 0.18s;white-space:nowrap;font-family:var(--fn)}
+.cat-pill.on{background:rgba(245,158,11,0.12);border-color:var(--amber);color:var(--amber)}
 
-/* ── STATS BAR ── */
-.stats-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px}
-.sbar-item{background:var(--c1);border:1px solid var(--br);border-radius:var(--rs);padding:10px 8px;text-align:center}
-.sbar-n{font-family:var(--fm);font-size:22px;font-weight:700;line-height:1}
-.sbar-l{font-size:9px;color:var(--t2);margin-top:3px;letter-spacing:0.5px;text-transform:uppercase}
+/* ── REFRESH BAR ── */
+.refresh-bar{display:flex;align-items:center;justify-content:space-between;background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:10px 14px;margin-bottom:4px}
+.refresh-ts{font-size:10px;color:var(--t3)}
+.refresh-cd{font-size:9px;color:var(--t3);margin-top:2px}
+.refresh-btn{background:var(--amber);color:#000;border:none;border-radius:var(--rs);padding:7px 14px;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fn);display:flex;align-items:center;gap:5px}
+.refresh-btn:disabled{opacity:0.5;cursor:not-allowed}
+.refresh-btn.spinning .ri{display:inline-block;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 /* ── NEWS CARDS ── */
-.news-list{display:flex;flex-direction:column;gap:8px}
+.news-grid{display:flex;flex-direction:column;gap:8px}
 
-.ncard{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;transition:border-color 0.2s;animation:up 0.3s ease both}
+.ncard{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;transition:border-color 0.2s;animation:up 0.3s ease both;cursor:pointer}
 .ncard:hover{border-color:var(--br2)}
-.ncard.bull{border-left:3px solid var(--green)}
-.ncard.bear{border-left:3px solid var(--red)}
-.ncard.neutral{border-left:3px solid var(--blue)}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-.ncard-top{padding:14px 14px 0}
-.ncard-row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px}
-.ncard-title{font-size:13px;font-weight:800;line-height:1.4;flex:1}
+/* Image banner */
+.ncard-img{width:100%;height:160px;object-fit:cover;display:block;background:var(--c2)}
+.ncard-img-ph{width:100%;height:100px;background:linear-gradient(135deg,var(--c2),var(--c3,#1e2535));display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--br)}
 
-.ntag{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:0.5px;flex-shrink:0;font-family:var(--fm)}
-.ntag-bull{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:var(--green)}
-.ntag-bear{background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);color:var(--red)}
-.ntag-neut{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.25);color:var(--blue)}
-
-.ncard-meta{display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+/* Card body */
+.ncard-body{padding:12px 14px 14px}
+.ncard-meta{display:flex;align-items:center;gap:6px;margin-bottom:7px;flex-wrap:wrap}
 .nmeta-src{font-size:9px;font-weight:700;color:var(--amber);letter-spacing:0.5px;text-transform:uppercase}
-.nmeta-dot{width:3px;height:3px;border-radius:50%;background:var(--t3)}
+.nmeta-dot{width:3px;height:3px;border-radius:50%;background:var(--t3);flex-shrink:0}
 .nmeta-date{font-size:9px;color:var(--t3)}
 .nmeta-cat{font-size:9px;color:var(--t3);background:var(--c2);border-radius:10px;padding:2px 8px;border:1px solid var(--br)}
 
-.ncard-body{padding:0 14px 14px}
+.ncard-title{font-size:13px;font-weight:800;line-height:1.5;margin-bottom:8px;color:var(--t1)}
 .ncard-summary{font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:10px}
 
-.ncard-impact{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--rs);margin-bottom:10px;font-size:11px;font-weight:700}
-.impact-bull{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.15);color:var(--green)}
-.impact-bear{background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.15);color:var(--red)}
-
-.ncard-footer{display:flex;align-items:center;justify-content:space-between}
-.ncard-link{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--amber);font-weight:700;text-decoration:none}
+.ncard-footer{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ncard-link{display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--amber);font-weight:700;text-decoration:none}
 .ncard-link:hover{text-decoration:underline}
 .ncard-share{background:var(--c2);border:1px solid var(--br);border-radius:var(--rs);padding:5px 10px;font-size:10px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--fn)}
 .ncard-share:hover{border-color:var(--amber);color:var(--amber)}
 
-/* ── LOADING / EMPTY ── */
-.news-loading{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:48px 20px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;color:var(--t2);font-size:13px}
-.news-empty{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:40px 20px;text-align:center;color:var(--t2);font-size:13px}
+/* ── PAGINATION ── */
+.pag-row{display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 0}
+.pag-btn{background:var(--c1);border:1px solid var(--br);border-radius:var(--rs);padding:8px 18px;font-size:11px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--fn)}
+.pag-btn:hover:not(:disabled){border-color:var(--amber);color:var(--amber)}
+.pag-btn:disabled{opacity:0.35;cursor:not-allowed}
+.pag-label{font-size:12px;font-weight:700;color:var(--t2);min-width:60px;text-align:center}
 
-/* ── REFRESH BAR ── */
-.refresh-bar{display:flex;align-items:center;justify-content:space-between;background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:11px 14px;margin-bottom:4px}
-.refresh-ts{font-size:10px;color:var(--t3)}
-.refresh-btn{background:var(--amber);color:#000;border:none;border-radius:var(--rs);padding:7px 16px;font-size:11px;font-weight:800;cursor:pointer;font-family:var(--fn);display:flex;align-items:center;gap:5px}
-.refresh-btn:active{opacity:0.8}
-.refresh-btn.spin-icon .ri{display:inline-block;animation:spin 0.7s linear infinite}
+/* ── SKELETON ── */
+.skel{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.skel-img{height:90px;background:linear-gradient(90deg,var(--c2) 25%,var(--br) 50%,var(--c2) 75%);background-size:200%;animation:shimmer 1.4s infinite}
+.skel-body{padding:12px 14px}
+.skel-line{height:9px;background:var(--br);border-radius:4px;margin-bottom:8px;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* ── EMPTY / ERROR ── */
+.news-empty{background:var(--c1);border:1px solid var(--br);border-radius:var(--r);padding:40px 20px;text-align:center;color:var(--t2);font-size:13px}
 </style>
 {% endblock %}
 
 {% block content %}
+
 <!-- Header -->
 <div class="news-hdr an">
   <div class="news-hdr-icon">📰</div>
   <div>
     <div class="news-hdr-title">Market News</div>
-    <div class="news-hdr-sub">Mustard · Edible Oil · Policy · Weather · Export</div>
+    <div class="news-hdr-sub" id="news-sub">Mustard · Edible Oil · Policy · Weather · Export</div>
   </div>
 </div>
 
-<!-- Stats bar (filled by JS) -->
-<div class="sec">Today's Sentiment</div>
-<div class="stats-bar" id="stats-bar">
-  <div class="sbar-item"><div class="sbar-n pos" id="cnt-bull">—</div><div class="sbar-l">Bullish</div></div>
-  <div class="sbar-item"><div class="sbar-n neg" id="cnt-bear">—</div><div class="sbar-l">Bearish</div></div>
-  <div class="sbar-item"><div class="sbar-n neu" id="cnt-neut">—</div><div class="sbar-l">Neutral</div></div>
-</div>
-
-<!-- Sentiment filter tabs -->
-<div class="sec">Filter By</div>
-<div class="sent-tabs">
-  <div class="stab on"       id="stab-all"  onclick="setFilter('all')">ALL</div>
-  <div class="stab s-bull"   id="stab-bull" onclick="setFilter('bullish')">▲ Bullish</div>
-  <div class="stab s-bear"   id="stab-bear" onclick="setFilter('bearish')">▼ Bearish</div>
-  <div class="stab s-neut"   id="stab-neut" onclick="setFilter('neutral')">◆ Neutral</div>
+<!-- Search bar -->
+<div class="search-wrap">
+  <input class="search-input" id="search-input" type="text"
+         placeholder="Search: mustard price, edible oil, harvest..."
+         onkeydown="if(event.key==='Enter')doSearch()">
+  <button class="search-btn" onclick="doSearch()">🔍 Search</button>
 </div>
 
 <!-- Category pills -->
 <div class="cat-row" id="cat-row">
-  <div class="cat-pill on" onclick="setCat('all')">🗂 All</div>
-  <div class="cat-pill" onclick="setCat('price')">💰 Prices</div>
-  <div class="cat-pill" onclick="setCat('policy')">📋 Policy</div>
-  <div class="cat-pill" onclick="setCat('weather')">🌦 Weather</div>
-  <div class="cat-pill" onclick="setCat('export')">🚢 Export</div>
-  <div class="cat-pill" onclick="setCat('edible_oil')">🫙 Edible Oil</div>
+  <div class="cat-pill on"  data-cat="all"        onclick="setCat(this,'all')">🗂 All Topics</div>
+  <div class="cat-pill"     data-cat="price"       onclick="setCat(this,'price')">💰 Prices</div>
+  <div class="cat-pill"     data-cat="edible_oil"  onclick="setCat(this,'edible_oil')">🫙 Edible Oil</div>
+  <div class="cat-pill"     data-cat="export"      onclick="setCat(this,'export')">🚢 Import/Export</div>
+  <div class="cat-pill"     data-cat="policy"      onclick="setCat(this,'policy')">📋 Policy/MSP</div>
+  <div class="cat-pill"     data-cat="weather"     onclick="setCat(this,'weather')">🌦 Crop/Weather</div>
 </div>
 
 <!-- Refresh bar -->
 <div class="refresh-bar" id="refresh-bar" style="display:none">
   <div>
-    <div class="refresh-ts" id="refresh-ts">Loading...</div>
-    <div id="refresh-countdown" style="font-size:9px;color:var(--t3);margin-top:2px"></div>
+    <div class="refresh-ts" id="refresh-ts">—</div>
+    <div class="refresh-cd" id="refresh-cd"></div>
   </div>
-  <button class="refresh-btn" id="refresh-btn" onclick="loadNews(true)">
-    <span class="ri">🔄</span> Get Fresh News
+  <button class="refresh-btn" id="refresh-btn" onclick="loadNews(CURR_CAT, CURR_PAGE, true)">
+    <span class="ri">🔄</span> Refresh
   </button>
 </div>
 
 <!-- News list -->
 <div class="sec">Latest Stories</div>
 <div id="news-root">
-  <div class="news-loading">
-    <div class="sp"></div>
-    Fetching latest market news...
-  </div>
+  <!-- skeleton on first load -->
+  <div class="skel"><div class="skel-img"></div><div class="skel-body">
+    <div class="skel-line" style="width:40%"></div>
+    <div class="skel-line" style="width:90%"></div>
+    <div class="skel-line" style="width:70%"></div>
+  </div></div>
+  <div class="skel"><div class="skel-img"></div><div class="skel-body">
+    <div class="skel-line" style="width:50%"></div>
+    <div class="skel-line" style="width:85%"></div>
+  </div></div>
+  <div class="skel"><div class="skel-img"></div><div class="skel-body">
+    <div class="skel-line" style="width:35%"></div>
+    <div class="skel-line" style="width:95%"></div>
+    <div class="skel-line" style="width:60%"></div>
+  </div></div>
 </div>
+
+<!-- Pagination -->
+<div class="pag-row" id="pag-row" style="display:none">
+  <button class="pag-btn" id="pag-prev" onclick="goPage(-1)" disabled>← Prev</button>
+  <div class="pag-label" id="pag-label">Page 1</div>
+  <button class="pag-btn" id="pag-next" onclick="goPage(1)">Next →</button>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-var ALL_NEWS = [];
-var FILT_SENT = 'all';
-var FILT_CAT  = 'all';
+var CURR_CAT  = 'all';
+var CURR_PAGE = 1;
+var _cdTimer  = null;
 
-var CAT_MAP = {
-  price:     '💰 Prices',
-  policy:    '📋 Policy',
-  weather:   '🌦 Weather',
-  export:    '🚢 Export/Import',
-  edible_oil:'🫙 Edible Oil',
-  general:   '📰 General'
-};
+// ── Category switch ─────────────────────────────────────────────
+function setCat(el, cat) {
+  document.querySelectorAll('.cat-pill').forEach(function(p){ p.classList.remove('on'); });
+  el.classList.add('on');
+  CURR_CAT  = cat;
+  CURR_PAGE = 1;
+  loadNews(cat, 1, false);
+}
 
-var _nextRefreshMin = 15;
-var _countdownTimer = null;
+// ── Search ──────────────────────────────────────────────────────
+function doSearch() {
+  var q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  // Deselect all pills
+  document.querySelectorAll('.cat-pill').forEach(function(p){ p.classList.remove('on'); });
+  CURR_CAT  = 'search';
+  CURR_PAGE = 1;
+  loadNews('search', 1, false, q);
+}
 
-async function loadNews(refresh) {
-  var el  = document.getElementById('news-root');
-  var btn = document.getElementById('refresh-btn');
-  if (refresh) {
-    el.innerHTML = '<div class="news-loading"><div class="sp"></div>🔍 Searching the web for fresh mustard & edible oil news...</div>';
-    if (btn) { btn.classList.add('spin-icon'); btn.disabled = true; }
-  }
+// ── Page navigation ─────────────────────────────────────────────
+function goPage(delta) {
+  var next = CURR_PAGE + delta;
+  if (next < 1) return;
+  CURR_PAGE = next;
+  loadNews(CURR_CAT, CURR_PAGE, false);
+  window.scrollTo(0, 0);
+}
+
+// ── Main fetch ──────────────────────────────────────────────────
+async function loadNews(cat, page, forceRefresh, customQ) {
+  var root = document.getElementById('news-root');
+  var btn  = document.getElementById('refresh-btn');
+
+  // Show skeleton while loading
+  root.innerHTML = [1,2,3].map(function(){ return (
+    '<div class="skel"><div class="skel-img"></div><div class="skel-body">' +
+    '<div class="skel-line" style="width:42%"></div>' +
+    '<div class="skel-line" style="width:88%"></div>' +
+    '<div class="skel-line" style="width:65%"></div>' +
+    '</div></div>'
+  ); }).join('');
+
+  if (btn) { btn.classList.add('spinning'); btn.disabled = true; }
+  if (_cdTimer) { clearInterval(_cdTimer); _cdTimer = null; }
+
   try {
-    var url = '/api/news' + (refresh ? '?refresh=1' : '');
-    var res = await fetch(url).then(function(r){ return r.json(); });
-    ALL_NEWS = res.news || [];
-    updateStats();
-    renderNews();
+    // Build URL
+    var params = [];
+    if (customQ)           params.push('q='        + encodeURIComponent(customQ));
+    else if (cat !== 'all') params.push('category=' + cat);
+    if (page > 1)          params.push('page='     + page);
+    if (forceRefresh)      params.push('refresh=1');
 
-    // Show refresh bar
-    var bar = document.getElementById('refresh-bar');
-    if (bar) bar.style.display = 'flex';
+    var url = '/api/news' + (params.length ? '?' + params.join('&') : '');
+    var res  = await fetch(url).then(function(r){ return r.json(); });
+    var news = res.news || [];
 
-    var ts  = document.getElementById('refresh-ts');
-    var now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-    var src = res.fallback  ? ' (offline fallback)'
-            : res.stale     ? ' (stale cache — API error)'
-            : res.cached    ? ' (cached ' + (res.cache_age||0) + 'm ago)'
-            : ' (' + (res.count||ALL_NEWS.length) + ' real stories from web)';
-    if (ts) ts.textContent = '🕐 ' + now + src;
+    renderCards(news);
+    updateRefreshBar(res, news.length);
+    updatePagination(page, news.length);
+    updateSubtitle(cat, customQ, news.length, res);
 
-    // Countdown to next auto-refresh
-    _nextRefreshMin = res.next_refresh || (res.cached ? res.next_refresh : 15);
-    startCountdown(_nextRefreshMin);
+    // Auto-refresh every 5 min
+    startCountdown(res.cached ? (res.next_refresh || 5) : 5);
 
   } catch(e) {
-    el.innerHTML = '<div class="news-empty">⚠️ Could not load news.<br>' +
-      '<small style="color:var(--t3)">Check Flask is running and ANTHROPIC_API_KEY is set.</small></div>';
+    root.innerHTML = '<div class="news-empty">⚠️ Could not load news.<br>' +
+      '<small style="color:var(--t3)">Make sure NEWSAPI_KEY is set in your environment.<br>' + e + '</small></div>';
   } finally {
-    if (btn) { btn.classList.remove('spin-icon'); btn.disabled = false; }
+    if (btn) { btn.classList.remove('spinning'); btn.disabled = false; }
   }
+}
+
+// ── Render cards ────────────────────────────────────────────────
+function renderCards(news) {
+  var root = document.getElementById('news-root');
+  if (!news.length) {
+    root.innerHTML = '<div class="news-empty">No news found for this topic.<br>' +
+      '<small style="color:var(--t3)">Try a different category or search term.</small></div>';
+    return;
+  }
+  root.innerHTML = '<div class="news-grid">' +
+    news.map(function(n, i){ return card(n, i); }).join('') +
+  '</div>';
+}
+
+function card(n, i) {
+  var delay = (i * 0.04) + 's';
+
+  // Image or placeholder emoji
+  var imgHtml = n.image
+    ? '<img class="ncard-img" src="' + n.image + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
+    : '';
+
+  // Category icon
+  var catIcons = {price:'💰',edible_oil:'🫙',export:'🚢',policy:'📋',weather:'🌦',general:'📰'};
+  var catIcon  = catIcons[n.category] || '📰';
+  var catLabel = (n.category || 'general').replace('_',' ');
+
+  // Link
+  var linkHtml = n.url
+    ? '<a class="ncard-link" href="' + escHtml(n.url) + '" target="_blank" rel="noopener noreferrer">Read full story →</a>'
+    : '<span style="font-size:10px;color:var(--t3)">No link</span>';
+
+  // Share
+  var shareHtml = '<button class="ncard-share" onclick="shareItem(\'' +
+    encodeURIComponent(n.title) + '\',\'' + encodeURIComponent(n.url||'') + '\')">Share 📤</button>';
+
+  return '<div class="ncard" style="animation-delay:' + delay + '">' +
+    imgHtml +
+    '<div class="ncard-body">' +
+      '<div class="ncard-meta">' +
+        '<span class="nmeta-src">' + escHtml(n.source||'News') + '</span>' +
+        '<span class="nmeta-dot"></span>' +
+        '<span class="nmeta-date">' + escHtml(n.date||'') + '</span>' +
+        '<span class="nmeta-cat">' + catIcon + ' ' + catLabel + '</span>' +
+      '</div>' +
+      '<div class="ncard-title">' + escHtml(n.title||'') + '</div>' +
+      (n.summary ? '<div class="ncard-summary">' + escHtml(n.summary) + '</div>' : '') +
+      '<div class="ncard-footer">' + linkHtml + shareHtml + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── UI helpers ───────────────────────────────────────────────────
+function updateRefreshBar(res, count) {
+  var bar = document.getElementById('refresh-bar');
+  var ts  = document.getElementById('refresh-ts');
+  if (bar) bar.style.display = 'flex';
+
+  var now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  var tag = res.fallback ? '⚠️ offline fallback'
+          : res.stale   ? '⚠️ stale cache'
+          : res.cached  ? '📦 cached ' + (res.cache_age||0) + 'm ago'
+          : '🌐 ' + count + ' live articles from NewsAPI';
+  if (ts) ts.textContent = now + ' — ' + tag;
+}
+
+function updatePagination(page, count) {
+  var row  = document.getElementById('pag-row');
+  var prev = document.getElementById('pag-prev');
+  var next = document.getElementById('pag-next');
+  var lbl  = document.getElementById('pag-label');
+  if (row) row.style.display = 'flex';
+  if (prev) prev.disabled = (page <= 1);
+  if (next) next.disabled = (count < 12);  // if fewer than pageSize, no more pages
+  if (lbl)  lbl.textContent = 'Page ' + page;
+}
+
+function updateSubtitle(cat, customQ, count, res) {
+  var sub = document.getElementById('news-sub');
+  if (!sub) return;
+  if (customQ)        sub.textContent = '🔍 "' + customQ + '" — ' + count + ' results';
+  else if (cat==='all') sub.textContent = count + ' stories · Mustard · Edible Oil · Policy · Weather';
+  else                sub.textContent = count + ' stories · ' + (res.query||cat);
 }
 
 function startCountdown(minutes) {
-  if (_countdownTimer) clearInterval(_countdownTimer);
-  var secs = (minutes || 15) * 60;
-  var el   = document.getElementById('refresh-countdown');
+  if (_cdTimer) clearInterval(_cdTimer);
+  var secs = (minutes || 5) * 60;
+  var el   = document.getElementById('refresh-cd');
   function tick() {
     if (!el) return;
     if (secs <= 0) {
-      el.textContent = '🔄 Auto-refreshing...';
-      loadNews(false);
-      clearInterval(_countdownTimer);
+      el.textContent = '🔄 Refreshing...';
+      clearInterval(_cdTimer);
+      loadNews(CURR_CAT, CURR_PAGE, true);
       return;
     }
-    var m = Math.floor(secs / 60);
-    var s = secs % 60;
-    el.textContent = 'Next auto-refresh in ' + m + 'm ' + (s<10?'0':'')+s + 's';
+    var m = Math.floor(secs/60), s = secs%60;
+    el.textContent = 'Auto-refresh in ' + m + 'm ' + (s<10?'0':'')+s+'s';
     secs--;
   }
   tick();
-  _countdownTimer = setInterval(tick, 1000);
+  _cdTimer = setInterval(tick, 1000);
 }
 
-function updateStats() {
-  var bull = ALL_NEWS.filter(function(n){ return n.sentiment === 'bullish'; }).length;
-  var bear = ALL_NEWS.filter(function(n){ return n.sentiment === 'bearish'; }).length;
-  var neut = ALL_NEWS.filter(function(n){ return n.sentiment !== 'bullish' && n.sentiment !== 'bearish'; }).length;
-  document.getElementById('cnt-bull').textContent = bull;
-  document.getElementById('cnt-bear').textContent = bear;
-  document.getElementById('cnt-neut').textContent = neut;
-}
-
-function setFilter(sent) {
-  FILT_SENT = sent;
-  // Update tab styles
-  ['all','bull','bear','neut'].forEach(function(t) {
-    var el = document.getElementById('stab-' + t);
-    if (el) el.classList.remove('on');
-  });
-  var key = sent === 'all' ? 'all' : sent === 'bullish' ? 'bull' : sent === 'bearish' ? 'bear' : 'neut';
-  var tab = document.getElementById('stab-' + key);
-  if (tab) tab.classList.add('on');
-  renderNews();
-}
-
-function setCat(cat) {
-  FILT_CAT = cat;
-  // Update pill styles
-  var pills = document.querySelectorAll('.cat-pill');
-  pills.forEach(function(p) { p.classList.remove('on'); });
-  event.target.classList.add('on');
-  renderNews();
-}
-
-function renderNews() {
-  var data = ALL_NEWS;
-  if (FILT_SENT !== 'all') {
-    data = data.filter(function(n){ return n.sentiment === FILT_SENT; });
-  }
-  if (FILT_CAT !== 'all') {
-    data = data.filter(function(n){ return n.category === FILT_CAT; });
-  }
-
-  var el = document.getElementById('news-root');
-  if (!data.length) {
-    el.innerHTML = '<div class="news-empty">No news matching this filter.<br><small style="color:var(--t3)">Try a different category or sentiment.</small></div>';
-    return;
-  }
-
-  el.innerHTML = '<div class="news-list">' +
-    data.map(function(n, i) { return newsCard(n, i); }).join('') +
-  '</div>';
-}
-
-function newsCard(n, i) {
-  var sent = n.sentiment || 'neutral';
-  var isBull = sent === 'bullish';
-  var isBear = sent === 'bearish';
-
-  var tag = isBull
-    ? '<span class="ntag ntag-bull">▲ BULLISH</span>'
-    : isBear
-    ? '<span class="ntag ntag-bear">▼ BEARISH</span>'
-    : '<span class="ntag ntag-neut">◆ NEUTRAL</span>';
-
-  var impactHtml = '';
-  if (isBull) {
-    impactHtml = '<div class="ncard-impact impact-bull">📈 Could push mustard prices UP — watch for buying opportunities</div>';
-  } else if (isBear) {
-    impactHtml = '<div class="ncard-impact impact-bear">📉 Could push mustard prices DOWN — consider waiting before buying</div>';
-  }
-
-  var catLabel = CAT_MAP[n.category] || '📰 General';
-  var delay = i * 0.05;
-
-  var linkHtml = n.url
-    ? '<a class="ncard-link" href="' + n.url + '" target="_blank" rel="noopener">Read full story →</a>'
-    : '<span style="font-size:10px;color:var(--t3)">No link available</span>';
-
-  return '<div class="ncard ' + sent + '" style="animation-delay:' + delay + 's">' +
-    '<div class="ncard-top">' +
-      '<div class="ncard-row1">' +
-        '<div class="ncard-title">' + n.title + '</div>' +
-        tag +
-      '</div>' +
-      '<div class="ncard-meta">' +
-        '<span class="nmeta-src">' + (n.source || 'Market News') + '</span>' +
-        '<span class="nmeta-dot"></span>' +
-        '<span class="nmeta-date">' + (n.date || '') + '</span>' +
-        '<span class="nmeta-cat">' + catLabel + '</span>' +
-      '</div>' +
-    '</div>' +
-    '<div class="ncard-body">' +
-      '<div class="ncard-summary">' + n.summary + '</div>' +
-      impactHtml +
-      '<div class="ncard-footer">' +
-        linkHtml +
-        '<button class="ncard-share" onclick="shareNews(\'' + encodeURIComponent(n.title) + '\')">Share 📤</button>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-}
-
-function shareNews(encodedTitle) {
-  var title = decodeURIComponent(encodedTitle);
-  var text = '📰 ' + title + '\n\nSource: RV Predictor — AI Mandi Intelligence';
+function shareItem(encTitle, encUrl) {
+  var title = decodeURIComponent(encTitle);
+  var url   = decodeURIComponent(encUrl);
+  var text  = '📰 ' + title + (url ? '\n' + url : '') + '\n\nvia RV Predictor';
   if (navigator.share) {
-    navigator.share({ title: 'RV Predictor News', text: text });
+    navigator.share({title: title, text: text, url: url}).catch(function(){});
   } else {
-    navigator.clipboard.writeText(text).then(function() {
-      alert('Copied to clipboard!');
-    });
+    navigator.clipboard.writeText(text).then(function(){
+      alert('Copied!');
+    }).catch(function(){});
   }
 }
 
-// Load on page open
-loadNews(false);
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Boot ────────────────────────────────────────────────────────
+loadNews('all', 1, false);
 </script>
 {% endblock %}
