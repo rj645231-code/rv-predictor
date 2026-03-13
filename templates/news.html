@@ -208,10 +208,13 @@ async function loadNews(cat, page, forceRefresh, customQ) {
   try {
     // Build URL
     var params = [];
-    if (customQ)           params.push('q='        + encodeURIComponent(customQ));
-    else if (cat !== 'all') params.push('category=' + cat);
-    if (page > 1)          params.push('page='     + page);
-    if (forceRefresh)      params.push('refresh=1');
+    if (customQ) {
+      params.push('q=' + encodeURIComponent(customQ));
+    } else {
+      params.push('category=' + cat);  // always send — even 'all' has its own query
+    }
+    if (page > 1)     params.push('page='    + page);
+    if (forceRefresh) params.push('refresh=1');
 
     var url = '/api/news' + (params.length ? '?' + params.join('&') : '');
     var res  = await fetch(url).then(function(r){ return r.json(); });
@@ -290,14 +293,21 @@ function card(n, i) {
 function updateRefreshBar(res, count) {
   var bar = document.getElementById('refresh-bar');
   var ts  = document.getElementById('refresh-ts');
+  var cd  = document.getElementById('refresh-cd');
   if (bar) bar.style.display = 'flex';
 
-  var now = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
-  var tag = res.fallback ? '⚠️ offline fallback'
+  var now     = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  var sortMap = {publishedAt:'🕐 Latest first', popularity:'🔥 Most popular', relevancy:'🎯 Most relevant'};
+  var sortLbl = res.sort_by ? (sortMap[res.sort_by] || res.sort_by) : '';
+  var tag = res.fallback ? '⚠️ offline fallback — check NEWSAPI_KEY'
           : res.stale   ? '⚠️ stale cache'
           : res.cached  ? '📦 cached ' + (res.cache_age||0) + 'm ago'
-          : '🌐 ' + count + ' live articles from NewsAPI';
+          : '🌐 ' + count + ' live articles' + (sortLbl ? ' · ' + sortLbl : '');
   if (ts) ts.textContent = now + ' — ' + tag;
+  // Show next refresh countdown only if we got real data
+  if (cd && !res.cached && !res.fallback) {
+    cd.textContent = 'Refresh for ' + (sortLbl || 'new order') + ' → different results';
+  }
 }
 
 function updatePagination(page, count) {
@@ -311,12 +321,24 @@ function updatePagination(page, count) {
   if (lbl)  lbl.textContent = 'Page ' + page;
 }
 
+var CAT_LABELS = {
+  all:       'All Topics',
+  price:     '💰 Prices',
+  edible_oil:'🫙 Edible Oil',
+  export:    '🚢 Import/Export',
+  policy:    '📋 Policy/MSP',
+  weather:   '🌦 Crop/Weather',
+};
+
 function updateSubtitle(cat, customQ, count, res) {
   var sub = document.getElementById('news-sub');
   if (!sub) return;
-  if (customQ)        sub.textContent = '🔍 "' + customQ + '" — ' + count + ' results';
-  else if (cat==='all') sub.textContent = count + ' stories · Mustard · Edible Oil · Policy · Weather';
-  else                sub.textContent = count + ' stories · ' + (res.query||cat);
+  if (customQ) {
+    sub.textContent = '🔍 "' + customQ + '" — ' + count + ' results';
+  } else {
+    var label = CAT_LABELS[cat] || cat;
+    sub.textContent = label + ' · ' + count + ' articles · tap Refresh for fresh results';
+  }
 }
 
 function startCountdown(minutes) {
@@ -326,13 +348,13 @@ function startCountdown(minutes) {
   function tick() {
     if (!el) return;
     if (secs <= 0) {
-      el.textContent = '🔄 Refreshing...';
+      el.textContent = '🔄 Auto-refreshing (new sort order)...';
       clearInterval(_cdTimer);
       loadNews(CURR_CAT, CURR_PAGE, true, CURR_Q||undefined);
       return;
     }
     var m = Math.floor(secs/60), s = secs%60;
-    el.textContent = 'Auto-refresh in ' + m + 'm ' + (s<10?'0':'')+s+'s';
+    el.textContent = 'Next refresh (new results) in ' + m + 'm ' + (s<10?'0':'')+s+'s';
     secs--;
   }
   tick();

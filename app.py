@@ -581,39 +581,47 @@ def api_bigplayers():
 
 # ── API: MARKET NEWS via NewsAPI.org ──────────────────────────
 
-# Get free key at https://newsapi.org/register (100 req/day free)
 NEWSAPI_KEY = os.environ.get('NEWSAPI_KEY', '')
 
-_news_cache    = {}   # keyed by query string
+_news_cache    = {}   # keyed by cache_key
 _news_cache_ts = {}
+NEWS_CACHE_SECONDS = 300   # 5 min — fresh per category/query/page
 
-NEWS_CACHE_SECONDS = 300   # 5 min per query
-
-# Mustard/oilseed focused search queries — rotated per category button
+# Each category has a DISTINCT query so switching pills gives different articles
 _CATEGORY_QUERIES = {
-    "all":        "mustard oil OR sarson OR edible oil India",
-    "price":      "mustard seed price mandi India",
-    "edible_oil": "mustard oil soybean palm oil price India",
-    "export":     "edible oil import export India oilseed",
-    "policy":     "mustard MSP government NCDEX India",
-    "weather":    "mustard crop rabi harvest Rajasthan India",
-    "general":    "mustard sarson commodity India",
+    'all':        'mustard sarson edible oil India',
+    'price':      'mustard seed mandi price arrivals India',
+    'edible_oil': 'mustard oil soybean oil palm oil retail wholesale India',
+    'export':     'edible oil import export duty India oilseed trade',
+    'policy':     'mustard MSP minimum support price NCDEX government India',
+    'weather':    'mustard rabi crop harvest rainfall Rajasthan India',
 }
 
+# Rotate sortBy so successive refreshes give different ordering of articles
+# publishedAt → latest first, popularity → most-read first, relevancy → best match
+_SORT_ROTATION = ['publishedAt', 'popularity', 'relevancy']
+_sort_idx = 0
 
-def _fetch_newsapi(query: str, page: int = 1, page_size: int = 12) -> list:
+
+def _fetch_newsapi(query: str, page: int = 1,
+                   page_size: int = 12, sort_by: str = 'publishedAt') -> list:
     """
-    Calls NewsAPI.org /v2/everything endpoint.
-    Returns list of normalised article dicts.
+    Calls NewsAPI /v2/everything.
+    sort_by rotates between calls so Refresh gives visibly different ordering.
     """
     import urllib.request, urllib.parse
+    from datetime import timedelta
+
+    # Search window: last 30 days (free plan max is 1 month)
+    date_from = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
 
     params = urllib.parse.urlencode({
         'q':        query,
+        'from':     date_from,
+        'sortBy':   sort_by,
         'page':     page,
         'pageSize': page_size,
         'language': 'en',
-        'sortBy':   'publishedAt',
         'apiKey':   NEWSAPI_KEY,
     })
     url = f'https://newsapi.org/v2/everything?{params}'
@@ -627,49 +635,47 @@ def _fetch_newsapi(query: str, page: int = 1, page_size: int = 12) -> list:
 
     articles = []
     for a in data.get('articles', []):
-        # Skip removed/[Removed] articles
         title = (a.get('title') or '').strip()
-        if not title or title == '[Removed]': continue
+        if not title or title == '[Removed]':
+            continue
         source_name = (a.get('source') or {}).get('name') or 'News'
         pub = a.get('publishedAt', '')
         try:
-            from datetime import timezone
-            dt = datetime.strptime(pub[:10], '%Y-%m-%d')
+            dt       = datetime.strptime(pub[:10], '%Y-%m-%d')
             date_str = dt.strftime('%d %b %Y')
         except Exception:
             date_str = datetime.now().strftime('%d %b %Y')
 
         articles.append({
-            'title':       title[:120],
-            'source':      source_name,
-            'date':        date_str,
-            'summary':     (a.get('description') or '')[:280],
-            'url':         a.get('url', ''),
-            'image':       a.get('urlToImage', ''),
-            'sentiment':   'neutral',   # NewsAPI doesn't provide — frontend can colour by keyword
-            'category':    'general',
+            'title':    title[:120],
+            'source':   source_name,
+            'date':     date_str,
+            'summary':  (a.get('description') or '')[:280],
+            'url':      a.get('url', ''),
+            'image':    a.get('urlToImage') or '',
+            'category': 'general',
         })
     return articles
 
 
 def _fallback_news(today_str: str) -> list:
     return [
-        {"title": "Mustard prices firm at Jaipur mandi on tight supply",
-         "source": "AgriMarket India", "date": today_str,
-         "summary": "Mustard seed prices remained firm at major Rajasthan mandis amid tight supply. Arrivals were down 15% week-on-week.",
-         "sentiment": "bullish", "category": "price", "url": "", "image": ""},
-        {"title": "Edible oil imports rise — pressure on domestic mustard oil",
-         "source": "Economic Times Agri", "date": today_str,
-         "summary": "India edible oil imports rose, led by palm oil. Cheaper imports are putting pressure on domestic mustard oil margins.",
-         "sentiment": "bearish", "category": "export", "url": "", "image": ""},
-        {"title": "Rabi mustard crop area up in Rajasthan this season",
-         "source": "Rajasthan Krishi News", "date": today_str,
-         "summary": "Mustard sowing area rose this rabi season. Bumper harvest expected in March-April, which may ease supply constraints.",
-         "sentiment": "bearish", "category": "weather", "url": "", "image": ""},
-        {"title": "Mustard MSP provides price floor — market trading above support",
-         "source": "NCDEX Bulletin", "date": today_str,
-         "summary": "MSP for mustard gives farmers a guaranteed floor price. Market prices are currently above MSP, signalling healthy demand.",
-         "sentiment": "neutral", "category": "policy", "url": "", "image": ""},
+        {'title': 'Mustard prices firm at Jaipur mandi on tight supply',
+         'source': 'AgriMarket India', 'date': today_str,
+         'summary': 'Mustard seed prices remained firm at major Rajasthan mandis amid tight supply. Arrivals were down 15% week-on-week.',
+         'url': '', 'image': '', 'category': 'price'},
+        {'title': 'Edible oil imports rise — pressure on domestic mustard oil',
+         'source': 'Economic Times Agri', 'date': today_str,
+         'summary': 'India edible oil imports rose, led by palm oil. Cheaper imports are putting pressure on domestic mustard oil margins.',
+         'url': '', 'image': '', 'category': 'export'},
+        {'title': 'Rabi mustard crop area up in Rajasthan this season',
+         'source': 'Rajasthan Krishi News', 'date': today_str,
+         'summary': 'Mustard sowing area rose this rabi season. Bumper harvest expected in March-April.',
+         'url': '', 'image': '', 'category': 'weather'},
+        {'title': 'Mustard MSP provides price floor — market trading above support',
+         'source': 'NCDEX Bulletin', 'date': today_str,
+         'summary': 'MSP for mustard gives farmers a guaranteed floor price. Market prices are above MSP.',
+         'url': '', 'image': '', 'category': 'policy'},
     ]
 
 
@@ -677,68 +683,82 @@ def _fallback_news(today_str: str) -> list:
 def api_news():
     """
     Live mustard/oilseed news from NewsAPI.org.
-    ?category=price|edible_oil|export|policy|weather|all  (default: all)
-    ?q=custom+search+query   (overrides category)
-    ?page=N                  (pagination, default 1)
-    ?refresh=1               (bypass cache)
+
+    ?category=all|price|edible_oil|export|policy|weather  (default: all)
+    ?q=custom search query    (overrides category)
+    ?page=N                   (default 1, max ~8 on free plan)
+    ?refresh=1                (bypass cache + rotate sort order → different results)
     """
-    global _news_cache, _news_cache_ts
+    global _news_cache, _news_cache_ts, _sort_idx
+
     now       = datetime.now().timestamp()
     today_str = datetime.now().strftime('%d %b %Y')
 
     category      = request.args.get('category', 'all')
     custom_q      = request.args.get('q', '').strip()
-    page          = max(1, int(request.args.get('page', 1)))
+    page          = max(1, int(request.args.get('page', 1) or 1))
     force_refresh = request.args.get('refresh', '0') == '1'
 
-    # Build query
+    # Build query string
     if custom_q:
         query = custom_q + ' India mustard oilseed'
     else:
         query = _CATEGORY_QUERIES.get(category, _CATEGORY_QUERIES['all'])
 
-    cache_key = f'{query}|{page}'
+    # On force_refresh: rotate sort order so results genuinely differ
+    if force_refresh:
+        _sort_idx = (_sort_idx + 1) % len(_SORT_ROTATION)
+    sort_by = _SORT_ROTATION[_sort_idx]
 
-    # Cache check
+    # Cache key includes sort_by so rotate gives a new cache slot
+    cache_key = f'{query}|{page}|{sort_by}'
+
+    # Serve cache on normal loads
     if (not force_refresh
             and cache_key in _news_cache
             and (now - _news_cache_ts.get(cache_key, 0)) < NEWS_CACHE_SECONDS):
         age = int((now - _news_cache_ts[cache_key]) / 60)
+        rem = max(0, int((NEWS_CACHE_SECONDS - (now - _news_cache_ts[cache_key])) / 60))
         return jsonify({
-            'news':      _news_cache[cache_key],
-            'cached':    True,
-            'cache_age': age,
-            'query':     query,
-            'page':      page,
-            'count':     len(_news_cache[cache_key]),
+            'news':         _news_cache[cache_key],
+            'cached':       True,
+            'cache_age':    age,
+            'next_refresh': rem,
+            'query':        query,
+            'sort_by':      sort_by,
+            'page':         page,
+            'count':        len(_news_cache[cache_key]),
         })
 
     if not NEWSAPI_KEY:
         fb = _fallback_news(today_str)
         return jsonify({'news': fb, 'cached': False, 'fallback': True,
-                        'error': 'No NEWSAPI_KEY set — add it to environment variables'})
+                        'error': 'No NEWSAPI_KEY set — add it to Render environment variables'})
 
     try:
-        print(f'[api/news] Fetching page={page} query="{query}"')
-        articles = _fetch_newsapi(query, page=page, page_size=12)
+        print(f'[api/news] page={page} sort={sort_by} query="{query}"')
+        articles = _fetch_newsapi(query, page=page, page_size=12, sort_by=sort_by)
 
         _news_cache[cache_key]    = articles
         _news_cache_ts[cache_key] = now
 
-        print(f'[api/news] Got {len(articles)} articles')
+        print(f'[api/news] ✅ {len(articles)} articles')
         return jsonify({
-            'news':    articles,
-            'cached':  False,
-            'query':   query,
-            'page':    page,
-            'count':   len(articles),
+            'news':     articles,
+            'cached':   False,
+            'sort_by':  sort_by,
+            'query':    query,
+            'page':     page,
+            'count':    len(articles),
         })
 
     except Exception as e:
         print(f'[api/news] Error: {e}')
-        if cache_key in _news_cache:
-            return jsonify({'news': _news_cache[cache_key], 'cached': True,
-                            'stale': True, 'error': str(e)})
+        # Return stale cache if available
+        stale = _news_cache.get(cache_key)
+        if stale:
+            return jsonify({'news': stale, 'cached': True, 'stale': True,
+                            'error': str(e), 'count': len(stale)})
         fb = _fallback_news(today_str)
         return jsonify({'news': fb, 'cached': False, 'fallback': True, 'error': str(e)})
 
