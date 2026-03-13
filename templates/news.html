@@ -114,7 +114,7 @@
     <div class="refresh-ts" id="refresh-ts">—</div>
     <div class="refresh-cd" id="refresh-cd"></div>
   </div>
-  <button class="refresh-btn" id="refresh-btn" onclick="loadNews(CURR_CAT, CURR_PAGE, true)">
+  <button class="refresh-btn" id="refresh-btn" onclick="loadNews(CURR_CAT, CURR_PAGE, true, CURR_Q||undefined)">
     <span class="ri">🔄</span> Refresh
   </button>
 </div>
@@ -152,6 +152,7 @@
 <script>
 var CURR_CAT  = 'all';
 var CURR_PAGE = 1;
+var CURR_Q    = '';    // remembered search query — used by pagination + auto-refresh
 var _cdTimer  = null;
 
 // ── Category switch ─────────────────────────────────────────────
@@ -160,6 +161,9 @@ function setCat(el, cat) {
   el.classList.add('on');
   CURR_CAT  = cat;
   CURR_PAGE = 1;
+  CURR_Q    = '';   // clear any active search
+  var inp = document.getElementById('search-input');
+  if (inp) inp.value = '';
   loadNews(cat, 1, false);
 }
 
@@ -167,9 +171,9 @@ function setCat(el, cat) {
 function doSearch() {
   var q = document.getElementById('search-input').value.trim();
   if (!q) return;
-  // Deselect all pills
   document.querySelectorAll('.cat-pill').forEach(function(p){ p.classList.remove('on'); });
   CURR_CAT  = 'search';
+  CURR_Q    = q;     // remember for pagination + auto-refresh
   CURR_PAGE = 1;
   loadNews('search', 1, false, q);
 }
@@ -179,7 +183,8 @@ function goPage(delta) {
   var next = CURR_PAGE + delta;
   if (next < 1) return;
   CURR_PAGE = next;
-  loadNews(CURR_CAT, CURR_PAGE, false);
+  // Pass CURR_Q so search pagination keeps fetching search results, not category
+  loadNews(CURR_CAT, CURR_PAGE, false, CURR_Q || undefined);
   window.scrollTo(0, 0);
 }
 
@@ -244,10 +249,10 @@ function renderCards(news) {
 function card(n, i) {
   var delay = (i * 0.04) + 's';
 
-  // Image or placeholder emoji
+  // Image — show emoji placeholder if no image or image fails to load
   var imgHtml = n.image
-    ? '<img class="ncard-img" src="' + n.image + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">'
-    : '';
+    ? '<img class="ncard-img" src="' + escHtml(n.image) + '" alt="" loading="lazy" ' +
+      'onerror="this.outerHTML=\'<div class=ncard-img-ph>📰</div>\'">'    : '<div class="ncard-img-ph">📰</div>';
 
   // Category icon
   var catIcons = {price:'💰',edible_oil:'🫙',export:'🚢',policy:'📋',weather:'🌦',general:'📰'};
@@ -259,9 +264,11 @@ function card(n, i) {
     ? '<a class="ncard-link" href="' + escHtml(n.url) + '" target="_blank" rel="noopener noreferrer">Read full story →</a>'
     : '<span style="font-size:10px;color:var(--t3)">No link</span>';
 
-  // Share
-  var shareHtml = '<button class="ncard-share" onclick="shareItem(\'' +
-    encodeURIComponent(n.title) + '\',\'' + encodeURIComponent(n.url||'') + '\')">Share 📤</button>';
+  // Share — store data in attributes to avoid quote-escaping issues in onclick
+  var shareHtml = '<button class="ncard-share" ' +
+    'data-title="' + escHtml(n.title) + '" ' +
+    'data-url="'   + escHtml(n.url||'') + '" ' +
+    'onclick="shareItem(this)">Share 📤</button>';
 
   return '<div class="ncard" style="animation-delay:' + delay + '">' +
     imgHtml +
@@ -321,7 +328,7 @@ function startCountdown(minutes) {
     if (secs <= 0) {
       el.textContent = '🔄 Refreshing...';
       clearInterval(_cdTimer);
-      loadNews(CURR_CAT, CURR_PAGE, true);
+      loadNews(CURR_CAT, CURR_PAGE, true, CURR_Q||undefined);
       return;
     }
     var m = Math.floor(secs/60), s = secs%60;
@@ -332,15 +339,17 @@ function startCountdown(minutes) {
   _cdTimer = setInterval(tick, 1000);
 }
 
-function shareItem(encTitle, encUrl) {
-  var title = decodeURIComponent(encTitle);
-  var url   = decodeURIComponent(encUrl);
+function shareItem(btn) {
+  var title = btn.getAttribute('data-title') || '';
+  var url   = btn.getAttribute('data-url')   || '';
   var text  = '📰 ' + title + (url ? '\n' + url : '') + '\n\nvia RV Predictor';
   if (navigator.share) {
     navigator.share({title: title, text: text, url: url}).catch(function(){});
   } else {
     navigator.clipboard.writeText(text).then(function(){
-      alert('Copied!');
+      var orig = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(function(){ btn.textContent = orig; }, 1500);
     }).catch(function(){});
   }
 }
