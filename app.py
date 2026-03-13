@@ -298,8 +298,9 @@ def api_signals():
                 "arrival": _s(row.get("Arrival Pressure", 0)),
                 "zone":    _s(row.get("Price Zone",      ""), ""),
                 "regime":  _s(row.get("Regime", row.get("Market Regime", "")), ""),
-                "trend":   _s(row.get("Trend Shape",     ""), ""),
-                "rows":    _s(row.get("Rows",             0)),
+                "trend":    _s(row.get("Trend Shape",     ""), ""),
+                "accuracy": str(row.get("Live Accuracy", "building...")),
+                "rows":     _s(row.get("Rows",             0)),
             })
 
         return jsonify({
@@ -397,7 +398,7 @@ def api_compare():
         result[mandi] = {
             'dates':    mdf['date'].dt.strftime('%Y-%m-%d').tolist(),
             'prices':   mdf['price'].round(0).tolist(),
-            'arrivals': mdf['arrival'].round(1).tolist(),
+            'arrivals': mdf['arrival'].round(1).tolist() if 'arrival' in mdf.columns else [0] * len(mdf),
             'latest':   float(mdf['price'].iloc[-1]),
             'avg':      float(mdf['price'].mean().round(0)),
             'min':      float(mdf['price'].min()),
@@ -523,24 +524,25 @@ def api_spread():
     try:
         if not os.path.exists("data/today_prediction.json"):
             return jsonify({"error": "No data yet"})
-        df = pd.read_json("data/today_prediction.json")
+        with open("data/today_prediction.json", "r", encoding="utf-8") as _f:
+            _raw = json.load(_f)
 
         rows = []
 
-        for _, row in df.iterrows():
-            mandi = row.get("Mandi")
-            price = row.get("Current Price")
-            score = row.get("Procurement Score")
-            crash = row.get("Crash Risk %")
-            entry = row.get("Entry Signal")
+        for row in _raw:
+            mandi = row.get("Mandi") or row.get("mandi")
+            price = row.get("Current Price") or row.get("price")
+            score = row.get("Procurement Score") or row.get("score", 0)
+            crash = row.get("Crash Risk %") or row.get("crash", 0)
+            entry = row.get("Entry Signal") or row.get("entry", "")
 
             if mandi and price:
                 rows.append({
-                    "mandi": mandi,
+                    "mandi": str(mandi),
                     "price": float(price),
                     "score": float(score) if score else 0,
                     "crash": float(crash) if crash else 0,
-                    "entry": entry
+                    "entry": str(entry) if entry else ""
                 })
 
         if not rows:

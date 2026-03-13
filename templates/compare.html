@@ -94,8 +94,8 @@ function fmy(hist,month,year){
     const dt=new Date(d);
     if(dt.getMonth()+1===month&&dt.getFullYear()===year){
       out.dates.push(d.slice(5));
-      out.prices.push(hist.prices[i]);
-      out.arrivals.push(hist.arrivals[i]);
+      out.prices.push((hist.prices||[])[i]??null);
+      out.arrivals.push((hist.arrivals||[])[i]??0);
     }
   });
   return out;

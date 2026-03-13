@@ -142,7 +142,7 @@ function pc(s){
 }
 function ss(s){
   if(!s)return'—';
-  return s.replace(/[🔥🟢⏳⛔🔴⚠️📊📈📉🔀]/gu,'').trim().split('—')[0].trim().slice(0,20);
+  return [...s.replace(/[🔥🟢⏳⛔🔴⚠️📊📈📉🔀]/gu,'').trim().split('—')[0].trim()].slice(0,20).join('');
 }
 function fp(v){return v?'₹'+Number(v).toLocaleString('en-IN',{maximumFractionDigits:0}):'—';}
 function fr(v){if(v==null)return'—';const n=Number(v);return(n>=0?'+':'')+n.toFixed(1)+'%';}

@@ -223,7 +223,7 @@ function drawM(m){
 
 function drawW(w){
   const c=document.getElementById('wc');if(!c)return;if(CH.w)CH.w.destroy();
-  const avg=w.prices.reduce((a,b)=>a+b,0)/w.prices.length;
+  const avg=w.arrivals.reduce((a,b)=>a+b,0)/w.arrivals.length;
   CH.w=new Chart(c.getContext('2d'),{
     data:{labels:w.arrivals.map((a,i)=>'W'+(w.weeks[i]||i+1)),datasets:[
       {type:'bar',label:'Arrivals per Week (avg)',data:w.arrivals,
